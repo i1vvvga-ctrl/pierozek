@@ -597,6 +597,27 @@ mark{background:color-mix(in srgb,var(--bad) 40%,transparent);color:inherit;bord
 .ukex2{display:grid;grid-template-columns:repeat(4,30px);gap:3px;justify-content:center;--cs:30px}
 .ukex2 .uc{font-size:14px}
 .mode .hot.easy{background:var(--line);color:var(--soft)}
+/* Konstruktor zdań */
+.start.units{background:linear-gradient(115deg,#1FB57A 0%,#13805A 35%,#0A4A36 70%,#03130E 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 20px 50px -24px #1FB57A}
+.fsent{font-size:20px;line-height:2.2;font-weight:600;margin:0}
+.fslot{border-radius:10px;padding:2px 10px;margin:0 2px;font-weight:800;font-style:italic;color:var(--hint);border:1.5px dashed var(--hint);background:color-mix(in srgb,var(--hint) 10%,transparent)}
+.fslot.set{font-style:normal;color:var(--fg);border-style:solid;border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.fslot.act{box-shadow:0 0 0 3px color-mix(in srgb,var(--hint) 45%,transparent)}
+.fslot.right{border-color:var(--ok);color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,transparent)}
+.fslot.wrong{border-color:var(--bad);color:var(--bad);background:color-mix(in srgb,var(--bad) 16%,transparent)}
+.fopts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fixs{line-height:2}
+.fw{font-size:20px;font-weight:600;padding:2px 5px;border-radius:8px}
+.fw.wrong{background:color-mix(in srgb,var(--bad) 30%,transparent)}
+.fw.found{background:color-mix(in srgb,var(--hint) 25%,transparent);box-shadow:inset 0 0 0 1.5px var(--hint)}
+.fw.right{color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,transparent)}
+.fw.hintw{outline:2px dashed var(--hint)}
+.rulecard{border-radius:18px;padding:14px;background:color-mix(in srgb,var(--accent) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 30%,transparent);display:flex;flex-direction:column;gap:8px;line-height:1.6}
+.rulecard p{margin:0}
+.exlist{display:flex;flex-direction:column;gap:6px}
+.exrow{display:flex;gap:8px;text-align:left;border-radius:12px;padding:8px 10px;background:var(--line);font-weight:600;font-size:14.5px}
+.unitc .stars{margin-left:auto;color:#F5B54A;font-size:15px;letter-spacing:1px;flex:none;align-self:center}
+.unitc.mine{box-shadow:var(--edge),inset 0 0 0 1.5px color-mix(in srgb,var(--accent) 45%,transparent)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -643,6 +664,10 @@ mark{background:color-mix(in srgb,var(--bad) 40%,transparent);color:inherit;bord
     <button id="tabGamesBtn" role="tab" aria-selected="false">🎮 <span data-t="tabGames"></span></button>
   </div>
   <div id="tabLearn" class="tabpane">
+  <button class="start glint units" id="btnUnits">
+    <span><span class="disp">🧩 Konstruktor zdań</span><small id="unitsSub"></small></span>
+    <span class="go">→</span>
+  </button>
   <button class="start glint" id="btnTrening">
     <span><span class="disp">Trening ∞</span><small id="treningSub"></small></span>
     <span class="go">→</span>
@@ -1086,6 +1111,7 @@ const STORIES = [
    Впиши сюда Telegram ID тёти (и свой, чтобы проверять).
    ID показывается на экране «Prywatna aplikacja», если открыть приложение с чужого аккаунта. */
 const ALLOWED_IDS = [7596461929];
+const OPEN_ACCESS = true; // приложение открыто для всех, у кого есть ссылка на бота
 
 /* ═════════════ УРОВНИ, РЕЖИМЫ, ТЕМЫ ═════════════ */
 const LEVELS = [
@@ -1156,7 +1182,7 @@ const haptic=(t)=>{try{ if(!tg||!tg.HapticFeedback) return; t==="tap"?tg.HapticF
 
 /* ═════════════ ПРОГРЕСС: Telegram CloudStorage + запасная копия в телефоне ═════════════ */
 const KEY="ppp_v2";
-let S={level:null,skin:"simka",voice:true,streak:0,last:null,today:0,todayDate:null,ok:0,all:0,miss:[],pierogi:0,tab:"learn",lang:"auto",hints:true,trans:true,explain:true,rate:"normal",goal:20,unknown:[],srs:{},hist:{},stories:[],best:0,dq:null,p5seen:false,ukSeen:false,ukSeen2:false,dailyCollapsed:false,kbest:0,dbest:0,sbest:0,loginDay:0,loginStreak:0,badgesGot:[]};
+let S={level:null,skin:"simka",voice:true,streak:0,last:null,today:0,todayDate:null,ok:0,all:0,miss:[],pierogi:0,tab:"learn",lang:"auto",hints:true,trans:true,explain:true,rate:"normal",goal:20,unknown:[],srs:{},hist:{},stories:[],best:0,dq:null,units:{},p5seen:false,ukSeen:false,ukSeen2:false,dailyCollapsed:false,kbest:0,dbest:0,sbest:0,loginDay:0,loginStreak:0,badgesGot:[]};
 function sanitize(o){
   if(!o||typeof o!=="object") return {};
   const r={};
@@ -1175,6 +1201,7 @@ function sanitize(o){
   if(Array.isArray(o.stories)) r.stories=o.stories.filter(Number.isInteger).slice(0,50);
   if(Number.isFinite(o.best)) r.best=Math.floor(o.best);
   if(o.dq&&Number.isFinite(o.dq.day)&&Array.isArray(o.dq.q)&&o.dq.q.every(q=>Array.isArray(q)&&q.length===4&&typeof q[0]==="string"&&q.slice(1).every(Number.isFinite))) r.dq={day:o.dq.day,q:o.dq.q.slice(0,3),bonus:o.dq.bonus?1:0};
+  if(o.units&&typeof o.units==="object"){ r.units={}; Object.entries(o.units).forEach(([k,v])=>{ if(/^\d{1,3}$/.test(k)&&[1,2,3].includes(v)) r.units[k]=v; }); }
   if(typeof o.p5seen==="boolean") r.p5seen=o.p5seen;
   if(typeof o.ukSeen==="boolean") r.ukSeen=o.ukSeen;
   if(typeof o.ukSeen2==="boolean") r.ukSeen2=o.ukSeen2;
@@ -1307,6 +1334,7 @@ function buildSession(mode){
   else if(mode==="quick"){
     fromMiss(3);
     dueWords().slice(0,3).forEach(w=>push(wordTask(w)));
+    for(let k=0;k<3;k++) push(GEN.unit());
     const pool=[];Object.entries(lvl().pool).forEach(([m,w])=>{ if(m==="listen"&&!canSpeak())return; for(let k=0;k<w;k++)pool.push(m); });
     let g=0;while(list.length<10&&g++<300)push(GEN[pick(pool)]());
   } else if(mode==="pictures"){ for(let k=0;k<8;k++)push(GEN.pictures()); }
@@ -1906,7 +1934,7 @@ klocki(area){
       asked.add(w.pl); const t=wordTask(w,pick(["recog","recall"]));
       return {...t,label:ui("Слово","Słowo"),grade:ok=>{ srsGrade(w.pl,ok,t); record(null,ok); }};
     }
-    const kinds=[...new Set(["translate","friends",...Object.keys(lvl().pool)])].filter(k=>DATA[k]&&GEN[k]&&k!=="listen"&&k!=="build");
+    const kinds=[...new Set(["translate","friends","unitc",...Object.keys(lvl().pool)])].filter(k=>DATA[k]&&GEN[k]&&k!=="listen"&&k!=="build"&&k!=="unit");
     for(let g=0;g<20;g++){ const k=pick(kinds), i=Math.floor(Math.random()*DATA[k].length); if(asked.has(k+i)) continue; asked.add(k+i);
       const t=GEN[k](i); return {...t,label:MODE_NAME[k],hint:t.hint||L().hints[k],grade:ok=>record(t.id,ok)}; }
     const w=pick([...WMAP.values()]); const t=wordTask(w,"recog"); return {...t,label:ui("Слово","Słowo"),grade:ok=>{ srsGrade(w.pl,ok,t); record(null,ok); }};
@@ -2636,6 +2664,7 @@ function nextItem(){
   const mode=lastMode;
   if(mode==="dyktando") return dictItem();
   const due=dueWords().filter(w=>!recent(w.pl));
+  if(mode==="trening"&&session.length%3===1) return GEN.unit();
   if(mode==="trening"&&session.length%7===6) return trTask();
   if(mode==="trening"&&session.length%5===4){
     const m=S.miss.length&&Math.random()<.5?S.miss[Math.floor(Math.random()*S.miss.length)]:null;
@@ -2841,6 +2870,7 @@ function openStory(i){
 
 /* ───── кнопки «Учёбы» ───── */
 function renderLearnExtras(){
+  const us=$("#unitsSub"); if(us&&typeof UNITS!=="undefined"){ const d=Object.values(S.units||{}).reduce((a,b)=>a+b,0); us.textContent=ui("Как строить предложения: правило → практика · ★ ","Jak budować zdania: reguła → praktyka · ★ ")+d+"/"+UNITS.length*3; }
   checkBadges();
   const n=dueWords().length;
   $("#treningSub").textContent=L().treningSub(n);
@@ -2852,6 +2882,7 @@ $("#btnDictation").onclick=()=>{ haptic("tap"); startSession("dyktando"); };
 $("#btnStories").onclick=()=>{ haptic("tap"); openGame("stories"); };
 $("#btnVocab").onclick=()=>{ haptic("tap"); vFilter="all"; vQuery=""; renderVocab(); show("vocab"); };
 $("#vBack").onclick=()=>show("home");
+$("#btnUnits").onclick=()=>{ haptic("tap"); openUnits(); };
 MODE_NAME.trening="Trening"; MODE_NAME.fiszki="Fiszki"; MODE_NAME.dyktando="Dyktando";
 
 
@@ -3611,6 +3642,306 @@ SENTS_RAW2.split("\n").forEach(l=>{ const p=l.split("|"); if(p.length>=3) SENTS.
 // простые игры на B2+ — вниз списка
 const EASY=new Set(["memory","shop","clock"]);
 
+
+/* ═════════════ KONSTRUKTOR ZDAŃ — курс построения предложений ═════════════
+   Виды заданий:
+   ["order", рус, "польский|вариант", пояснение?]          — собери фразу из слов
+   ["forms", рус, "шаблон {лемма|верно|неверно|неверно}", п?] — поставь слова в нужную форму
+   ["choose", рус, "верно|неверно|неверно", п?]           — выбери, как правильно
+   ["fix", рус, "фраза с *ошибкой*", "верно|неверно|неверно", п?] — найди и исправь ошибку
+   ["trans", рус, "польский|вариант", п?]                 — переведи сама */
+const UNITS = [
+ {lv:1,t:"Простое предложение и вопрос",pl:"Zdanie i pytanie",
+  rule:"Обычный порядок: кто — что делает — что/где. Местоимения ja, ty, my обычно опускают: «Mam kota», а не «Ja mam kota» (так звучит, будто подчёркиваешь «именно я»). Вопрос «да/нет» начинают с Czy: «Czy masz czas?»",
+  ex:["Mam kota. — У меня есть кот.","Czy masz czas? — У тебя есть время?","Mieszkam w Gdańsku. — Я живу в Гданьске."],
+  q:[["order","Я живу в Польше.","Mieszkam w Polsce."],
+     ["order","У тебя есть время?","Czy masz czas?"],
+     ["forms","Я работаю в магазине.","{pracować|Pracuję|Pracuje|Pracować} w {sklep|sklepie|sklep|sklepu}.","Глагол меняется по лицу (ja → -ę), «где?» — местный падеж: w sklepie."],
+     ["choose","Ты говоришь по-польски?","Czy mówisz po polsku?|Czy ty mówić po polsku?|Mówisz czy po polsku?","Czy — в начале вопроса, глагол в форме «ty»: mówisz."],
+     ["fix","Я люблю кофе.","Lubię *kawa*.","kawę|kawie|kawą","lubić + винительный: kawa → kawę."],
+     ["order","Мой муж работает в банке.","Mój mąż pracuje w banku."],
+     ["forms","Мы живём в Кракове.","{mieszkać (my)|Mieszkamy|Mieszkam|Mieszkają} w {Kraków|Krakowie|Kraków|Krakowa}."],
+     ["trans","Где ты живёшь?","Gdzie mieszkasz?|Gdzie ty mieszkasz?"]]},
+ {lv:1,t:"«Есть» и «нет»: падеж после отрицания",pl:"Mam / nie mam",
+  rule:"После mieć — винительный: mam brata, mam siostrę. После любого отрицания (nie mam, nie widzę, nie lubię, nie piję) — всегда родительный: nie mam brata, nie mam siostry, nie mam czasu. Это одно из главных отличий от русского «не вижу Анну».",
+  ex:["Mam samochód. → Nie mam samochodu.","Lubię kawę. → Nie lubię kawy.","Widzę Annę. → Nie widzę Anny."],
+  q:[["forms","У меня нет времени.","Nie {mieć|mam|ma|mieć} {czas|czasu|czas|czasem}."],
+     ["forms","Я не люблю молоко.","Nie {lubić|lubię|lubi|lubić} {mleko|mleka|mleko|mlekiem}."],
+     ["fix","У меня нет машины.","Nie mam *samochód*.","samochodu|samochodem|samochodzie"],
+     ["order","У меня нет сестры.","Nie mam siostry."],
+     ["choose","Я не вижу Анну.","Nie widzę Anny.|Nie widzę Annę.|Nie widzę Anna.","После nie — родительный: Anny (по-русски можно «Анну», по-польски — нет)."],
+     ["trans","У нас нет денег.","Nie mamy pieniędzy."],
+     ["fix","Я не пью кофе.","Nie piję *kawę*.","kawy|kawą|kawie"],
+     ["forms","У меня есть брат, но нет сестры.","Mam {brat|brata|brat|bratem}, ale nie mam {siostra|siostry|siostrę|siostra}."]]},
+ {lv:2,t:"Где? Куда? — w, na, do, u",pl:"Gdzie? Dokąd?",
+  rule:"Где? — w/na + местный падеж: w domu, w pracy, na poczcie. Куда? — do + родительный (do domu, do sklepu, do pracy) или na + винительный (na pocztę, na dworzec, na spacer). К человеку — do lekarza; у человека — u lekarza. «На работу» — do pracy, «на море» — nad morze.",
+  ex:["Jestem w pracy. → Idę do pracy.","Jestem na poczcie. → Idę na pocztę.","Byłam u lekarza. → Idę do lekarza."],
+  q:[["choose","Я иду на работу.","Idę do pracy.|Idę na pracę.|Idę w pracę.","«На работу» по-польски — do pracy."],
+     ["choose","Я на почте.","Jestem na poczcie.|Jestem w pocztę.|Jestem do poczty."],
+     ["forms","Мы едем в Варшаву.","Jedziemy {в|do|w|na} {Warszawa|Warszawy|Warszawie|Warszawę}.","Куда? в город → do + родительный."],
+     ["forms","Мама у врача.","Mama jest {у|u|w|do} {lekarz|lekarza|lekarzu|lekarzem}.","У человека — u + родительный."],
+     ["order","Вечером я иду в кино.","Wieczorem idę do kina."],
+     ["fix","Я иду в магазин.","Idę do *sklep*.","sklepu|sklepie|sklepem"],
+     ["trans","Летом мы едем на море.","Latem jedziemy nad morze.|W lecie jedziemy nad morze.","К морю/озеру — nad: nad morze, nad jezioro."],
+     ["choose","Дети на улице (гуляют снаружи).","Dzieci są na dworze.|Dzieci są w ulicy.|Dzieci są do dworu.","«На улице (не дома)» — na dworze / na zewnątrz."]]},
+ {lv:2,t:"Прошедшее время: была, был, были",pl:"Czas przeszły",
+  rule:"Форма зависит от рода: byłam (я, женщина), byłem (я, мужчина), była / był, byliśmy (мы — если есть хоть один мужчина), byłyśmy (мы — только женщины). Окончание лица сидит прямо в глаголе: robiłam, robiłaś, robiłyśmy — местоимение не нужно.",
+  ex:["Wczoraj byłam w kinie. — Вчера я была в кино.","Gdzie byłaś? — Где ты была?","Byliśmy na wakacjach. — Мы были в отпуске."],
+  q:[["forms","Вчера я была дома.","Wczoraj {być|byłam|byłem|była} w {dom|domu|dom|domem}."],
+     ["choose","Где ты была? (к женщине)","Gdzie byłaś?|Gdzie byłeś?|Gdzie była ty?"],
+     ["order","Мы были в Кракове.","Byliśmy w Krakowie."],
+     ["forms","Она купила хлеб.","Ona {kupić|kupiła|kupił|kupiłam} {chleb|chleb|chleba|chlebem}."],
+     ["fix","Я (женщина) работала до шести.","*Pracowałem* do szóstej.","Pracowałam|Pracowała|Pracowali","Женщина о себе: -łam."],
+     ["trans","Что ты делала вчера?","Co robiłaś wczoraj?|Co wczoraj robiłaś?"],
+     ["choose","Мы (подруги) были в кафе.","Byłyśmy w kawiarni.|Byliśmy w kawiarni.|Były w kawiarni.","Только женщины — byłyśmy; если есть мужчина — byliśmy."],
+     ["order","Мой сын сделал домашнее задание.","Mój syn odrobił lekcje.|Mój syn zrobił zadanie domowe."]]},
+ {lv:3,t:"Się, mi, go — куда ставить короткие слова",pl:"Gdzie postawić się, mi, go",
+  rule:"Короткие безударные слова (się, mi, ci, go, jej, mu, ją) не любят начало и конец фразы — обычно они стоят как можно ближе к началу, после первого ударного слова: «Podoba mi się», «Jak się masz?», «Dam ci znać». Ошибка русскоговорящих — «Podoba się mi» и «się» в самом конце.",
+  ex:["Podoba mi się ten film. — Мне нравится этот фильм.","Jak się nazywasz? — Как тебя зовут?","Dam ci znać jutro. — Дам тебе знать завтра.","Dawno go nie widziałam. — Давно его не видела."],
+  q:[["choose","Мне нравится этот город.","Podoba mi się to miasto.|Podoba się mi to miasto.|To miasto mi podoba się."],
+     ["order","Как тебя зовут?","Jak się nazywasz?"],
+     ["choose","Я дам тебе знать завтра.","Dam ci znać jutro.|Dam znać ci jutro.|Ci dam znać jutro."],
+     ["order","Я его давно не видела.","Dawno go nie widziałam.|Nie widziałam go dawno."],
+     ["choose","Я встречаюсь с ним завтра.","Spotykam się z nim jutro.|Spotykam z nim się jutro.|Się spotykam z nim jutro."],
+     ["trans","Мне это не нравится.","Nie podoba mi się to.|To mi się nie podoba."],
+     ["order","Он мне всё рассказал.","Opowiedział mi wszystko.|Wszystko mi opowiedział."],
+     ["choose","Ты её помнишь?","Pamiętasz ją?|Pamiętasz jej?|Ją pamiętasz się?","pamiętać kogo — винительный: ją."]]},
+ {lv:3,t:"Связываем мысли: bo, więc, ale, chociaż",pl:"Spójniki",
+  rule:"bo / ponieważ — потому что; więc / dlatego — поэтому; ale — но; chociaż — хотя; a — а. Перед ними всегда ставится запятая. «Dlatego» отвечает «поэтому», а «bo» — «потому что»: не путай направление!",
+  ex:["Nie przyszłam, bo byłam chora.","Pada deszcz, więc zostaniemy w domu.","Chociaż był zmęczony, poszedł do pracy."],
+  q:[["choose","Я не пришла, потому что болела.","Nie przyszłam, bo byłam chora.|Nie przyszłam, więc byłam chora.|Nie przyszłam, ale byłam chora."],
+     ["choose","Идёт дождь, поэтому мы остаёмся дома.","Pada deszcz, więc zostajemy w domu.|Pada deszcz, bo zostajemy w domu.|Pada deszcz, chociaż zostajemy w domu."],
+     ["order","Хотя было поздно, мы пошли гулять.","Chociaż było późno, poszliśmy na spacer."],
+     ["order","Я устала, но довольна.","Jestem zmęczona, ale zadowolona."],
+     ["trans","Я учу польский, потому что живу в Польше.","Uczę się polskiego, bo mieszkam w Polsce.|Uczę się polskiego, ponieważ mieszkam w Polsce."],
+     ["choose","У меня нет времени, поэтому я не приду.","Nie mam czasu, dlatego nie przyjdę.|Nie mam czasu, bo nie przyjdę.|Nie mam czasu, chociaż nie przyjdę."],
+     ["forms","Он не пришёл, хотя обещал.","Nie {przyjść|przyszedł|przyjdzie|przyszła}, {хотя|chociaż|bo|więc} {obiecać|obiecał|obiecuje|obiecała}."]]},
+ {lv:3,t:"Который: który, która, które",pl:"Zdania z który",
+  rule:"który (м.р.), która (ж.р.), które (ср.р. и мн.ч. не о мужчинах), którzy (мужчины мн.ч.). Падеж слова «который» зависит от его роли во второй части: «książka, którą czytam» (читаю что? — винительный), «kobieta, której pomagam» (помогаю кому?), «dom, w którym mieszkam» (где?).",
+  ex:["To jest książka, którą czytam.","Mam sąsiada, który pracuje w banku.","To są ludzie, z którymi pracuję."],
+  q:[["choose","Это книга, которую я читаю.","To jest książka, którą czytam.|To jest książka, która czytam.|To jest książka, który czytam."],
+     ["choose","У меня есть соседка, которая работает в банке.","Mam sąsiadkę, która pracuje w banku.|Mam sąsiadkę, którą pracuje w banku.|Mam sąsiadkę, który pracuje w banku."],
+     ["forms","Это люди, с которыми я работаю.","To są ludzie, z {który|którymi|którzy|których} {pracować|pracuję|pracuje|pracować}."],
+     ["order","Где сумка, которую я купила?","Gdzie jest torba, którą kupiłam?"],
+     ["choose","Это женщина, которой я помогаю.","To kobieta, której pomagam.|To kobieta, którą pomagam.|To kobieta, która pomagam.","pomagać komu? → której."],
+     ["trans","Фильм, который мы смотрели, был скучный.","Film, który oglądaliśmy, był nudny."],
+     ["fix","Это дом, в котором я живу.","To dom, w *który* mieszkam.","którym|którego|której"]]},
+ {lv:3,t:"Будущее: zrobię или będę robić",pl:"Czas przyszły",
+  rule:"Совершенный вид в будущем — одно законченное действие: zrobię, napiszę, kupię, zadzwonię. Несовершенный — процесс или повторение: będę robić (или będę robiła). Нельзя: «będę zrobić» — będę только с несовершенным видом!",
+  ex:["Jutro zadzwonię do mamy. — Завтра позвоню маме.","Jutro cały dzień będę pracować. — Завтра весь день буду работать.","Kupię chleb po pracy. — Куплю хлеб после работы."],
+  q:[["choose","Завтра я позвоню маме (один раз).","Jutro zadzwonię do mamy.|Jutro będę zadzwonić do mamy.|Jutro zadzwonię mamie."],
+     ["choose","Завтра я весь день буду работать.","Jutro cały dzień będę pracować.|Jutro cały dzień popracuję.|Jutro cały dzień będę popracować."],
+     ["forms","После работы я куплю хлеб.","Po pracy {kupić|kupię|będę kupić|kupuję} {chleb|chleb|chleba|chlebem}."],
+     ["order","Я напишу тебе вечером.","Napiszę do ciebie wieczorem.|Napiszę ci wieczorem."],
+     ["trans","В следующем году я буду учить немецкий.","W przyszłym roku będę się uczyć niemieckiego.|W przyszłym roku będę uczyć się niemieckiego."],
+     ["fix","Я обязательно тебе помогу.","Na pewno ci *pomagam*.","pomogę|pomagałam|pomóc"],
+     ["choose","Что ты будешь делать в выходные?","Co będziesz robić w weekend?|Co będziesz zrobić w weekend?|Co robiłaś w weekend?","będziesz + несовершенный вид: robić."]]},
+ {lv:3,t:"Вопросы: kto, kogo, komu, z kim, o czym",pl:"Pytania",
+  rule:"Вопросительное слово меняется по падежам: Kto? Kogo? Komu? Z kim? O kim / o czym? Ответ ставится в тот же падеж. И не забывай про управление: czekać NA kogo (ждать кого), dla kogo (для кого).",
+  ex:["Z kim rozmawiałaś? — Z sąsiadką.","O czym myślisz? — O pracy.","Na kogo czekasz? — Na męża."],
+  q:[["choose","С кем ты разговаривала?","Z kim rozmawiałaś?|Z kogo rozmawiałaś?|Kim rozmawiałaś?"],
+     ["choose","О чём ты думаешь?","O czym myślisz?|Co myślisz o?|O co myślisz?"],
+     ["order","Кому ты дала ключи?","Komu dałaś klucze?"],
+     ["forms","Кого ты ждёшь?","{кого|Na kogo|Kogo|Kto} {czekać|czekasz|czeka|czekać}?","czekać na kogo — ждать кого."],
+     ["trans","Чем ты интересуешься?","Czym się interesujesz?"],
+     ["choose","Для кого этот подарок?","Dla kogo jest ten prezent?|Dla kto jest ten prezent?|Komu jest ten prezent?"]]},
+ {lv:4,t:"Żeby и gdyby: чтобы и если бы",pl:"Żeby i gdyby",
+  rule:"żeby + форма прошедшего — цель или желание: «Chcę, żebyś przyszedł», «Przyszłam, żeby pomóc». gdyby + форма прошедшего + условное наклонение — нереальное условие: «Gdybym miała czas, pojechałabym». Окончание лица «прыгает» на żeby/gdyby: żebym, żebyś, gdybym, gdybyśmy.",
+  ex:["Chcę, żebyś przyszedł. — Хочу, чтобы ты пришёл.","Gdybym miała czas, pojechałabym. — Если бы у меня было время, я бы поехала."],
+  q:[["choose","Я хочу, чтобы ты пришёл.","Chcę, żebyś przyszedł.|Chcę, że przyjdziesz.|Chcę, żebyś przyjdziesz."],
+     ["forms","Если бы у меня были деньги, я бы купила дом.","{если бы я|Gdybym|Jeśli|Żebym} {mieć|miała|mam|mieć} pieniądze, {kupić|kupiłabym|kupię|kupiłam} dom."],
+     ["order","Скажи ему, чтобы он позвонил.","Powiedz mu, żeby zadzwonił."],
+     ["trans","Я пришла, чтобы тебе помочь.","Przyszłam, żeby ci pomóc.|Przyszłam, aby ci pomóc."],
+     ["choose","Если бы ты знал!","Gdybyś wiedział!|Jeśli byś wiedział!|Gdyby ty wiedział!"],
+     ["fix","Мама просит, чтобы я купила молоко.","Mama prosi, żebym *kupię* mleko.","kupiła|kupić|kupuję","После żeby — форма прошедшего: żebym kupiła."]]},
+ {lv:4,t:"Чужие слова: powiedział, że… / zapytała, czy…",pl:"Mowa zależna",
+  rule:"Чужие слова передаём через że (что) и czy (ли). Время НЕ сдвигается: «Jestem zmęczona» → «Powiedziała, że jest zmęczona». Вопрос без вопросительного слова → czy: «Przyjdziesz?» → «Zapytał, czy przyjdę». С вопросительным словом оно остаётся: «Zapytaj, gdzie mieszka».",
+  ex:["Powiedziała, że jest zmęczona.","Zapytał, czy przyjdę.","Nie wiem, gdzie on mieszka."],
+  q:[["choose","Она сказала, что устала.","Powiedziała, że jest zmęczona.|Powiedziała, czy jest zmęczona.|Powiedziała, jest zmęczona."],
+     ["choose","Он спросил, приду ли я.","Zapytał, czy przyjdę.|Zapytał, że przyjdę.|Zapytał, przyjdę li."],
+     ["order","Она сказала, что не знает.","Powiedziała, że nie wie."],
+     ["trans","Спроси его, где он живёт.","Zapytaj go, gdzie mieszka.|Spytaj go, gdzie mieszka."],
+     ["forms","Я не знаю, будет ли она дома.","Nie {wiedzieć|wiem|wiedzę|wie}, {ли|czy|że|jeśli} {ona być|będzie|jest|była} w domu."]]},
+ {lv:4,t:"Отрицание: nikt nic nie…",pl:"Przeczenie",
+  rule:"Как и в русском, отрицаний бывает несколько: «Nikt nic nie wie», «Nigdy nigdzie nie byłam». Частица nie стоит прямо перед глаголом. И помни: после отрицания — родительный падеж (nie mam żadnych problemów).",
+  ex:["Nikt nic nie wie. — Никто ничего не знает.","Nigdy tam nie byłam. — Я никогда там не была.","Nie mam żadnych problemów. — У меня нет никаких проблем."],
+  q:[["order","Никто ничего не знает.","Nikt nic nie wie."],
+     ["choose","Я никогда там не была.","Nigdy tam nie byłam.|Nigdy tam byłam.|Nie nigdy tam byłam."],
+     ["forms","Я никого не видела.","{никого|Nikogo|Nikt|Nikomu} nie {widzieć|widziałam|widziałem|widzę}."],
+     ["fix","У меня нет никаких проблем.","Nie mam żadnych *problemy*.","problemów|problemami|problemom"],
+     ["trans","Никто мне не помог.","Nikt mi nie pomógł."]]},
+ {lv:4,t:"Слова, которые дружат",pl:"Kolokacje w zdaniu",
+  rule:"Многие слова «дружат» только с определёнными глаголами — их учат парой: popełnić błąd (не zrobić!), podjąć decyzję, zadać pytanie, zwrócić uwagę, wziąć udział, wyciągnąć wnioski, odnieść sukces.",
+  ex:["Popełniłam błąd. — Я совершила ошибку.","Podjęliśmy decyzję. — Мы приняли решение.","Czy mogę zadać pytanie? — Можно задать вопрос?"],
+  q:[["choose","Я совершила ошибку.","Popełniłam błąd.|Zrobiłam błąd.|Wykonałam błąd."],
+     ["forms","Мы приняли решение.","{podjąć|Podjęliśmy|Wzięliśmy|Zrobiliśmy} {decyzja|decyzję|decyzja|decyzji}."],
+     ["order","Можно задать вопрос?","Czy mogę zadać pytanie?"],
+     ["trans","Обрати внимание на этот знак.","Zwróć uwagę na ten znak."],
+     ["choose","Она приняла участие в конкурсе.","Wzięła udział w konkursie.|Przyjęła udział w konkursie.|Zrobiła udział w konkursie."],
+     ["fix","Он сделал выводы.","*Zrobił* wnioski.","Wyciągnął|Wyjął|Dostał"]]},
+ {lv:5,t:"Деепричастия и причастия в речи",pl:"Imiesłowy w zdaniu",
+  rule:"Чтобы сказать короче и элегантнее: «Kiedy wracałam do domu, spotkałam…» → «Wracając do domu, spotkałam…». Деепричастие можно, только если оба действия делает один и тот же человек! Причастия заменяют «который»: «człowiek, który siedzi obok» → «człowiek siedzący obok».",
+  ex:["Wracając do domu, spotkałam sąsiadkę.","Czytając książkę, zasnęłam.","Dokumenty podpisane wczoraj są u dyrektora."],
+  q:[["choose","Возвращаясь домой, я встретила соседку.","Wracając do domu, spotkałam sąsiadkę.|Wracając do domu, sąsiadka mnie spotkała.|Wracający do domu, spotkałam sąsiadkę.","Деепричастие — только когда действие делает тот же человек (я)."],
+     ["order","Читая книгу, я уснула.","Czytając książkę, zasnęłam."],
+     ["forms","Человек, сидящий рядом, — мой брат.","Człowiek {siedzieć|siedzący|siedząc|siedział} obok to mój {brat|brat|brata|bratem}."],
+     ["trans","Документы, подписанные вчера, уже у директора.","Dokumenty podpisane wczoraj są już u dyrektora."],
+     ["choose","Закончив работу, она пошла домой.","Skończywszy pracę, poszła do domu.|Skończona praca, poszła do domu.|Skończyła pracę, poszedłszy do domu."]]},
+ {lv:5,t:"Официальный стиль: перестраиваем фразу",pl:"Styl oficjalny",
+  rule:"В письмах и в urzędzie фразы строят иначе: вместо «chcę» — «chciałabym» или «uprzejmie proszę o…», вместо «bo» — «ponieważ», вместо «żeby» — «aby», вместо «dostać» — «otrzymać», «по поводу» — «w sprawie». Обращение — Pan/Pani/Państwo.",
+  ex:["Uprzejmie proszę o przesłanie dokumentów.","Piszę w sprawie rachunku.","Nie przyszłam, ponieważ byłam chora."],
+  q:[["choose","Официально: я хотела бы записаться на приём.","Chciałabym umówić się na wizytę.|Chcę wizytę.|Dajcie mi wizytę."],
+     ["choose","Официально: я не пришла, потому что болела.","Nie przyszłam, ponieważ byłam chora.|Nie przyszłam, no bo chorowałam.|Nie przyszłam, bo byłam chora i tyle."],
+     ["order","Прошу прислать документы.","Uprzejmie proszę o przesłanie dokumentów."],
+     ["trans","Я получила ваше письмо (к мужчине).","Otrzymałam Pana list.|Otrzymałam Pana wiadomość."],
+     ["fix","Пишу по поводу счёта.","Piszę *o* sprawie rachunku.","w|na|przy","«по поводу» — w sprawie."]]},
+ {lv:6,t:"Порядок слов для акцента",pl:"Szyk i akcent",
+  rule:"Порядок слов свободный, но самое важное ставят в конец: «Rano piję kawę» (что пью? — кофе), «Kawę piję rano» (когда? — утром). Для выделения — «to właśnie…» (именно), «nawet» (даже), «dopiero» (только, не раньше). Важно: «только вчера (не раньше)» = dopiero wczoraj, а не tylko!",
+  ex:["To właśnie on mi pomógł. — Именно он мне помог.","Dowiedziałam się o tym dopiero wczoraj. — Узнала об этом только вчера.","Nawet mój mąż to zrozumiał. — Даже мой муж это понял."],
+  q:[["choose","Именно он мне помог (а не кто-то другой).","To właśnie on mi pomógł.|Właśnie on to mi pomógł.|On właśnie mi to pomógł."],
+     ["choose","Я узнала об этом только вчера.","Dowiedziałam się o tym dopiero wczoraj.|Dowiedziałam się o tym tylko wczoraj.|Dopiero dowiedziałam się wczoraj o tym.","«только (не раньше)» — dopiero."],
+     ["order","Даже мой муж это понял.","Nawet mój mąż to zrozumiał."],
+     ["trans","Кофе я пью только утром.","Kawę piję tylko rano."],
+     ["choose","Он пришёл только в десять (поздно).","Przyszedł dopiero o dziesiątej.|Przyszedł tylko o dziesiątej.|Przyszedł już o dziesiątej."]]}
+];
+
+/* ═════════════ KONSTRUKTOR ZDAŃ — движок ═════════════ */
+const UQ=[]; UNITS.forEach((u,ui)=>u.q.forEach((q,qi)=>UQ.push({ui,qi,u,q,id:"unit:"+(ui*100+qi)})));
+const uqById=id=>UQ.find(x=>x.id===id);
+// фразы курса — в общий банк перевода (Deszcz klocków, Trening)
+UQ.forEach(x=>{ if(x.q[0]==="order"||x.q[0]==="trans"){ const v=x.q[2].split("|"); SENTS.push({lv:x.u.lv,ru:x.q[1],pl:v[0],alts:v.slice(1)}); } });
+// и в «Zdanie z baniek»: [рус, польский, лишние слова, варианты]
+UQ.filter(x=>x.q[0]==="order").forEach(x=>{ const v=x.q[2].split("|"); DATA.build.push([x.q[1],v[0],"się|nie",v.slice(1).join("|")||undefined]); });
+
+function renderUQ(box,q,done,opts={}){
+  const [type,ru]=q; let answered=false;
+  const fin=(ok,html)=>{ if(answered) return; answered=true; haptic(ok?"success":"error");
+    const expl=type==="fix"?q[4]:q[3];
+    const fb=el("div","fb glass "+(ok?"ok":"no"),"<h3>"+(ok?pick(PRAISE):pick(OOPS))+"</h3>"+(html||"")+(expl&&S.explain!==false?'<p class="note">💡 '+esc(expl)+'</p>':""));
+    box.append(fb); fb.scrollIntoView({block:"nearest",behavior:"smooth"}); done(ok); };
+  if(type!=="trans") box.append(el("p","eyebrow",esc({order:ui("Собери фразу","Ułóż zdanie"),forms:ui("Поставь слова в нужную форму","Wstaw słowa we właściwej formie"),choose:ui("Как сказать правильно?","Jak powiedzieć poprawnie?"),fix:ui("Найди ошибку и нажми на неё","Znajdź błąd i stuknij w niego"),trans:ui("Переведи на польский","Przetłumacz na polski")}[type])));
+  if(type!=="trans") box.append(el("p","q big",esc(ru)));
+  const lvn=LV_N[S.level]||3;
+  if(type==="order"){
+    const v=q[2].split("|"), words=v[0].replace(/[.?!,]/g,"").split(" ");
+    const others=shuffle(UQ.filter(x=>x.q[0]==="order"&&x.q!==q).flatMap(x=>x.q[2].split("|")[0].replace(/[.?!,]/g,"").split(" ")).filter(w=>!words.includes(w))).slice(0,lvn>=3?2:1);
+    const line=el("div","line"), pool=el("div","pool"), picked=[];
+    shuffle([...words,...others]).forEach(w=>{ const c=el("button","chip",esc(w));
+      c.onclick=()=>{ if(answered||c.classList.contains("used")) return; haptic("tap"); c.classList.add("used"); picked.push(w); const p=el("button","chip",esc(w));
+        p.onclick=()=>{ if(answered) return; const k=[...line.children].indexOf(p); picked.splice(k,1); p.remove(); c.classList.remove("used"); }; line.append(p); };
+      pool.append(c); });
+    const chk=el("button","primary",esc(L().check));
+    chk.onclick=()=>{ if(!picked.length) return; chk.remove(); const ok=v.map(norm).includes(norm(picked.join(" "))); speak(v[0],true);
+      fin(ok,(ok?"":'<p>'+esc(L().correct)+' <span class="ans">'+esc(v[0])+'</span></p>')+(v[1]?'<p class="note">'+esc(ui("Можно и так: ","Można też: "))+esc(v[1])+'</p>':"")); };
+    box.append(line,pool,chk);
+  }
+  if(type==="forms"){
+    const parts=q[2].split(/(\{[^}]+\})/); const slots=[]; const sent=el("p","fsent");
+    parts.forEach(pt=>{ const m=pt.match(/^\{([^}]+)\}$/); if(!m){ if(pt) sent.append(document.createTextNode(pt)); return; }
+      const [lem,cor,...wr]=m[1].split("|"); const s={lem,cor,opts:shuffle([cor,...wr]),val:null,el:el("button","fslot",esc(lem))}; slots.push(s); sent.append(s.el); });
+    const optBox=el("div","fopts"); let active=null;
+    const showOpts=s=>{ active=s; slots.forEach(x=>x.el.classList.toggle("act",x===s)); optBox.innerHTML=""; optBox.append(el("span","note",esc(s.lem)+" →"));
+      s.opts.forEach(o=>{ const b=el("button","chip",esc(o)); b.onclick=()=>{ s.val=o; s.el.textContent=o; s.el.classList.add("set"); haptic("tap"); const nx=slots.find(x=>!x.val); if(nx) showOpts(nx); else { optBox.innerHTML=""; slots.forEach(x=>x.el.classList.remove("act")); } }; optBox.append(b); }); };
+    slots.forEach(s=>s.el.onclick=()=>{ if(!answered) showOpts(s); });
+    const chk=el("button","primary",esc(L().check));
+    chk.onclick=()=>{ if(slots.some(s=>!s.val)){ const nx=slots.find(s=>!s.val); showOpts(nx); toast(ui("Заполни все слова","Uzupełnij wszystkie słowa")); return; }
+      chk.remove(); optBox.remove(); let ok=true; slots.forEach(s=>{ const good=s.val===s.cor; if(!good) ok=false; s.el.classList.add(good?"right":"wrong"); s.el.disabled=true; });
+      const full=q[2].replace(/\{([^}]+)\}/g,(_,c)=>c.split("|")[1]); speak(full,true);
+      fin(ok,ok?"":'<p>'+esc(L().correct)+' <span class="ans">'+esc(full)+'</span></p>'); };
+    box.append(sent,optBox,chk); showOpts(slots[0]);
+  }
+  if(type==="choose"){
+    const v=q[2].split("|"), wrap=el("div","opts");
+    shuffle(v).forEach(o=>{ const b=el("button","opt",esc(o)); b.onclick=()=>{ if(answered) return; const ok=o===v[0];
+      [...wrap.children].forEach(x=>{ x.disabled=true; if(x.textContent===v[0]) x.classList.add("right"); else if(x===b) x.classList.add("wrong"); else x.classList.add("dim"); });
+      speak(v[0],true); fin(ok,""); }; wrap.append(b); });
+    box.append(wrap);
+  }
+  if(type==="fix"){
+    const raw=q[2], opts=q[3].split("|"), sent=el("p","fsent fixs"); let bad=null, tries=0;
+    raw.split(" ").forEach(tok=>{ const isBad=/^\*.*\*[.,?!]?$/.test(tok); const clean=tok.replace(/\*/g,""); const b=el("button","fw",esc(clean)); if(isBad) bad=b;
+      b.onclick=()=>{ if(answered) return;
+        if(b===bad){ b.classList.add("found"); haptic("tap"); const ob=el("div","fopts"); ob.append(el("span","note",esc(ui("Заменить на:","Zamień na:"))));
+          shuffle(opts).forEach(o=>{ const c=el("button","chip",esc(o)); c.onclick=()=>{ const ok=o===opts[0]&&tries===0; b.textContent=o+(clean.match(/[.,?!]$/)?clean.slice(-1):""); b.classList.add(o===opts[0]?"right":"wrong"); ob.remove();
+            const full=raw.replace(/\*[^*]+\*/,opts[0]); speak(full,true); fin(ok&&o===opts[0],o===opts[0]&&ok?"":'<p>'+esc(L().correct)+' <span class="ans">'+esc(full)+'</span></p>'); }; ob.append(c); });
+          sent.after(ob); [...sent.children].forEach(x=>x.disabled=true); }
+        else { tries++; b.classList.add("wrong"); haptic("error"); setTimeout(()=>b.classList.remove("wrong"),500); if(tries>=2){ bad.classList.add("hintw"); toast(ui("Ошибка в подсвеченном слове","Błąd jest w zaznaczonym słowie")); } } };
+      sent.append(b, document.createTextNode(" ")); });
+    box.append(sent);
+  }
+  if(type==="trans"){
+    const v=q[2].split("|"); trUI(box,{ru,pl:v[0],alts:v.slice(1)},ok=>done(ok,true),{nextLabel:opts.nextLabel});
+  }
+}
+// задание курса как карточка в Trening / Szybka lekcja
+GEN.unit=i=>{
+  let x;
+  if(i!=null) x=uqById("unit:"+i)||pick(UQ);
+  else { const lv=LV_N[S.level]||3; const pool=UQ.filter(y=>y.u.lv<=lv+1&&y.u.lv>=Math.max(1,lv-2)); x=pick(pool.length?pool:UQ); }
+  return {id:x.id,kind:"uq",tag:"Budowa zdań",x};
+};
+EXTRA_KIND.uq=(t,card)=>{
+  const main=$("#btnMain");
+  renderUQ(card,t.x.q,(ok,selfNext)=>{ record(t.id,ok); if(ok){ score++; S.pierogi=(S.pierogi||0)+1; save(); } if(endless){ sessStats.ans++; if(ok) sessStats.ok++; }
+    if(selfNext){ next(); return; } main.hidden=false; main.textContent=endless||pos+1<session.length?L().next:L().finish; main.onclick=next; });
+};
+// повтор ошибок курса: id вида unit:NNN
+DATA.unit=new Proxy({},{get:(o,k)=>k==="length"?UQ.length:(/^\d+$/.test(k)?(uqById("unit:"+k)?{}:undefined):undefined)});
+MODE_NAME.unit="Budowa zdań";
+T.ru.hints.unit="Как построить предложение"; T.pl.hints.unit="Jak zbudować zdanie";
+// курс — главный элемент всех уровней
+LEVELS.forEach(l=>{ l.pool={unit:l.k==="A1"||l.k==="A2"?3:4,...l.pool}; });
+// вопросы «как сказать правильно» — и в Klocki
+GEN.unitc=()=>{ const lv=LV_N[S.level]||3; const pool=UQ.filter(y=>y.q[0]==="choose"&&Math.abs(y.u.lv-lv)<=1); const x=pick(pool.length?pool:UQ.filter(y=>y.q[0]==="choose")); const v=x.q[2].split("|");
+  return {id:x.id,kind:"choice",hint:ui("Как сказать правильно?","Jak powiedzieć poprawnie?"),q:esc(x.q[1]),big:true,options:shuffle(v),correct:v[0],explain:x.q[3]||"",say:v[0]}; };
+DATA.unitc=Array(60).fill(0);
+
+/* ───── экран курса ───── */
+function openUnits(){
+  stopGame(); game={key:"units",cleanup:null}; lastMode="units"; show("game");
+  $("#gTitle").textContent="Konstruktor zdań"; gArea().className="card glass"; gMain(null); renderUnitList();
+}
+const stars=n=>"★".repeat(n)+"☆".repeat(3-n);
+function renderUnitList(){
+  const area=gArea(); area.innerHTML=""; gMain(null);
+  const lv=LV_N[S.level]||3, done=Object.values(S.units||{}).reduce((a,b)=>a+b,0);
+  gInfo("★ "+done+"/"+UNITS.length*3);
+  area.append(el("p","hint",esc(ui("Здесь учимся строить предложения: короткое правило с примерами, потом практика — собрать фразу, поставить слова в нужную форму, найти ошибку, перевести. Сначала — уроки твоего уровня.","Tu uczymy się budować zdania: krótka reguła z przykładami, potem praktyka. Najpierw lekcje na twoim poziomie."))));
+  UNITS.map((u,i)=>[u,i]).sort((a,b)=>Math.abs(a[0].lv-lv)-Math.abs(b[0].lv-lv)||a[0].lv-b[0].lv||a[1]-b[1]).forEach(([u,i])=>{
+    const st=(S.units||{})[i]||0;
+    const b=el("button","lvl glass unitc"+(Math.abs(u.lv-lv)<=1?" mine":""),'<span class="code">'+["A1","A2","B1","B2","C1","C2"][u.lv-1]+'</span><span class="tx"><span class="nm">'+esc(u.t)+'</span><span class="ds">'+esc(u.pl)+' · '+u.q.length+' '+esc(ui("заданий","zadań"))+'</span></span><span class="stars">'+stars(st)+'</span>');
+    b.onclick=()=>{ haptic("tap"); openUnit(i); }; area.append(b); });
+}
+function openUnit(i){
+  const u=UNITS[i], area=gArea(); area.innerHTML=""; gMain(null); gInfo(["A1","A2","B1","B2","C1","C2"][u.lv-1]);
+  const back=el("button","say",esc(ui("← все уроки","← wszystkie lekcje"))); back.onclick=renderUnitList; area.append(back);
+  area.append(el("p","q big",esc(u.t)));
+  const rc=el("div","rulecard"); rc.append(el("p","eyebrow","📘 "+esc(ui("Правило","Reguła"))), el("p","",esc(u.rule)));
+  const exl=el("div","exlist"); u.ex.forEach(e=>{ const pl=e.split(" — ")[0].split(" → ").pop(); const b=el("button","exrow",'<span>🔊</span><span>'+esc(e)+'</span>'); b.onclick=()=>speak(e.split(" — ")[0].replace(" → ",". "),true); exl.append(b); });
+  rc.append(exl); area.append(rc);
+  gMain(ui("Начать практику","Zacznij ćwiczenia")+" · "+u.q.length,()=>runUnit(i));
+}
+function runUnit(i){
+  const u=UNITS[i]; const order=u.q.map((_,k)=>k); let k=0, ok=0;
+  const step=()=>{
+    const area=gArea(); area.innerHTML=""; gMain(null); gInfo((k+1)+"/"+order.length);
+    const qi=order[k], id="unit:"+(i*100+qi);
+    renderUQ(area,u.q[qi],(good,selfNext)=>{ record(id,good); if(good){ ok++; S.pierogi=(S.pierogi||0)+1; save(); }
+      const go=()=>{ k++; k<order.length?step():finishUnit(i,ok,order.length); };
+      if(selfNext){ go(); return; } gMain(k+1<order.length?L().next:L().finish,go); },{nextLabel:k+1<order.length?L().next:L().finish});
+  };
+  step();
+}
+function finishUnit(i,ok,n){
+  const r=ok/n, st=r>=.9?3:r>=.7?2:1; S.units=S.units||{}; const prev=S.units[i]||0; if(st>prev) S.units[i]=st;
+  const bonus=st*5+(st===3&&prev<3?10:0); S.pierogi=(S.pierogi||0)+bonus; questTick("game"); save(); haptic("success");
+  const area=gArea(); area.innerHTML=""; gMain(null); gInfo("");
+  area.append(el("p","eyebrow center",esc(UNITS[i].t)), el("p","score shine center",stars(st)), el("p","q center",ok+" / "+n+" · +"+bonus+" 🥟"));
+  area.append(el("p","hint center",esc(st===3?ui("Отлично! Эта конструкция у тебя в кармане.","Świetnie! Ta konstrukcja jest twoja."):ui("Ошибки уже в повторении — они вернутся в Trening ∞. Можно пройти урок ещё раз.","Błędy trafiły do powtórek. Możesz przejść lekcję jeszcze raz."))));
+  const row=el("div","row"); const again=el("button","ghost glass",esc(ui("Ещё раз","Jeszcze raz"))); again.onclick=()=>runUnit(i);
+  const list=el("button","primary glint",esc(ui("К урокам","Do lekcji"))); list.onclick=renderUnitList; row.append(again,list); area.append(row);
+}
+
 /* ═════════════ ЕЖЕДНЕВНЫЙ ПРОГРЕСС: задания дня, неделя, ранги ═════════════ */
 const QUESTS={
  ans:["Ответь на {n} заданий","Odpowiedz na {n} pytań",()=>S.goal,15],
@@ -3710,7 +4041,7 @@ function renderSettings(){
   row(L().sSkin,null,sk);
   const rb=el("button","chipbtn danger",esc(resetArmed?L().sResetQ:L().sReset));
   rb.onclick=()=>{ if(!resetArmed){ resetArmed=true; haptic("warning"); renderSettings(); return; }
-    resetArmed=false; Object.assign(S,{streak:0,last:null,today:0,todayDate:null,ok:0,all:0,miss:[],pierogi:0,unknown:[],srs:{},hist:{},stories:[],best:0,dq:null}); save(); haptic("success"); rb.textContent=L().sResetDone; rb.disabled=true; };
+    resetArmed=false; Object.assign(S,{streak:0,last:null,today:0,todayDate:null,ok:0,all:0,miss:[],pierogi:0,unknown:[],srs:{},hist:{},stories:[],best:0,dq:null,units:{}}); save(); haptic("success"); rb.textContent=L().sResetDone; rb.disabled=true; };
   row(L().sReset,null,rb);
 }
 
@@ -3734,7 +4065,7 @@ $("#btnLevel").onclick=()=>{renderLevels();show("level");};
   const isLocal=location.protocol==="file:"||host==="localhost"||host==="127.0.0.1";
   const uid=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user.id:null;
   if(tg){ try{ tg.ready(); tg.expand(); if(tg.disableVerticalSwipes) tg.disableVerticalSwipes(); tg.BackButton.onClick(()=>{ $("#play").hidden&&$("#level").hidden&&$("#game").hidden&&$("#settings").hidden&&$("#vocab").hidden?null:goBack(); }); }catch(e){} }
-  if(!isLocal && !(uid && ALLOWED_IDS.includes(uid))){
+  if(!OPEN_ACCESS && !isLocal && !(uid && ALLOWED_IDS.includes(uid))){
     if(uid){ $("#denyText").textContent="Это личное приложение. Если оно твоё — попроси добавить этот ID в список доступа:"; $("#denyId").hidden=false; $("#denyId").textContent=uid; }
     show("deny"); return;
   }
