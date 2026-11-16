@@ -618,6 +618,23 @@ mark{background:color-mix(in srgb,var(--bad) 40%,transparent);color:inherit;bord
 .exrow{display:flex;gap:8px;text-align:left;border-radius:12px;padding:8px 10px;background:var(--line);font-weight:600;font-size:14.5px}
 .unitc .stars{margin-left:auto;color:#F5B54A;font-size:15px;letter-spacing:1px;flex:none;align-self:center}
 .unitc.mine{box-shadow:var(--edge),inset 0 0 0 1.5px color-mix(in srgb,var(--accent) 45%,transparent)}
+/* ситуации, тест уровня */
+.line.chunks .chip,.pool.chunks .chip{font-size:15px;padding:9px 12px;line-height:1.3;text-align:left}
+.uic{display:block;font-size:18px;line-height:1;margin-bottom:2px}
+.unitc .code{flex-direction:column;font-size:15px}
+.testcard{border-radius:18px;padding:14px;display:flex;gap:12px;align-items:center;text-align:left;box-shadow:var(--edge),inset 0 0 0 1.5px color-mix(in srgb,var(--hint) 45%,transparent)}
+.testcard .tci{font-size:28px}
+.testcard .tx{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.testcard b{font-family:var(--display);font-weight:500;font-size:15px}
+.testcard small{color:var(--soft);font-size:13px;line-height:1.35}
+.testcard .go{flex:none;font-size:20px;color:var(--hint)}
+.tbar{height:6px;border-radius:6px;background:var(--line);overflow:hidden}
+.tbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--ok))}
+.lvres{display:flex;flex-direction:column;gap:6px}
+.lvrow{display:grid;grid-template-columns:34px 1fr 56px;gap:8px;align-items:center;font-size:13px;font-weight:700;padding:4px 8px;border-radius:10px}
+.lvrow.me{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.lvb{height:8px;border-radius:8px;background:var(--line);overflow:hidden}
+.lvb i{display:block;height:100%;background:var(--ok)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -1182,7 +1199,7 @@ const haptic=(t)=>{try{ if(!tg||!tg.HapticFeedback) return; t==="tap"?tg.HapticF
 
 /* ═════════════ ПРОГРЕСС: Telegram CloudStorage + запасная копия в телефоне ═════════════ */
 const KEY="ppp_v2";
-let S={level:null,skin:"simka",voice:true,streak:0,last:null,today:0,todayDate:null,ok:0,all:0,miss:[],pierogi:0,tab:"learn",lang:"auto",hints:true,trans:true,explain:true,rate:"normal",goal:20,unknown:[],srs:{},hist:{},stories:[],best:0,dq:null,units:{},p5seen:false,ukSeen:false,ukSeen2:false,dailyCollapsed:false,kbest:0,dbest:0,sbest:0,loginDay:0,loginStreak:0,badgesGot:[]};
+let S={level:null,skin:"simka",voice:true,streak:0,last:null,today:0,todayDate:null,ok:0,all:0,miss:[],pierogi:0,tab:"learn",lang:"auto",hints:true,trans:true,explain:true,rate:"normal",goal:20,unknown:[],srs:{},hist:{},stories:[],best:0,dq:null,units:{},unitTab:"gram",p5seen:false,ukSeen:false,ukSeen2:false,dailyCollapsed:false,kbest:0,dbest:0,sbest:0,loginDay:0,loginStreak:0,badgesGot:[]};
 function sanitize(o){
   if(!o||typeof o!=="object") return {};
   const r={};
@@ -1202,6 +1219,7 @@ function sanitize(o){
   if(Number.isFinite(o.best)) r.best=Math.floor(o.best);
   if(o.dq&&Number.isFinite(o.dq.day)&&Array.isArray(o.dq.q)&&o.dq.q.every(q=>Array.isArray(q)&&q.length===4&&typeof q[0]==="string"&&q.slice(1).every(Number.isFinite))) r.dq={day:o.dq.day,q:o.dq.q.slice(0,3),bonus:o.dq.bonus?1:0};
   if(o.units&&typeof o.units==="object"){ r.units={}; Object.entries(o.units).forEach(([k,v])=>{ if(/^\d{1,3}$/.test(k)&&[1,2,3].includes(v)) r.units[k]=v; }); }
+  if(o.unitTab==="life"||o.unitTab==="gram") r.unitTab=o.unitTab;
   if(typeof o.p5seen==="boolean") r.p5seen=o.p5seen;
   if(typeof o.ukSeen==="boolean") r.ukSeen=o.ukSeen;
   if(typeof o.ukSeen2==="boolean") r.ukSeen2=o.ukSeen2;
@@ -1467,6 +1485,8 @@ function next(){
 /* ═════════════ ЭКРАН УРОВНЯ ═════════════ */
 function renderLevels(){
   const box=$("#levels");box.innerHTML="";
+  const tb=el("button","testcard glass",'<span class="tci">🎯</span><span class="tx"><b>'+esc(ui("Не знаешь свой уровень?","Nie znasz swojego poziomu?"))+'</b><small>'+esc(ui("Пройди тест: 18 вопросов, около 3 минут — и я подскажу, какой уровень тебе подходит.","Zrób test: 18 pytań, ok. 3 minuty."))+'</small></span><span class="go">→</span>');
+  tb.onclick=()=>{ haptic("tap"); openLevelTest(); }; box.append(tb);
   LEVELS.forEach(l=>{
     const b=el("button","lvl glass",'<span class="code">'+l.k+'</span><span class="tx"><span class="nm">'+esc(l.pl)+'</span><span class="sub">'+esc(l.nm)+'</span><span class="ds">'+esc(l.ru)+'</span><span class="exl">„'+esc(l.ex)+'”</span></span>');
     b.setAttribute("aria-pressed",S.level===l.k);
@@ -2910,7 +2930,7 @@ function trUI(box,it,done,opts={}){
   if(tiles){
     const words=it.pl.replace(/[.?!,]/g,"").split(" ");
     const others=shuffle(SENTS.filter(s=>s!==it).flatMap(s=>s.pl.replace(/[.?!,]/g,"").split(" ")).filter(w=>!words.includes(w))).slice(0,2);
-    const line=el("div","line"), pool=el("div","pool"), picked=[];
+    const line=el("div","line"+(chunked?" chunks":"")), pool=el("div","pool"+(chunked?" chunks":"")), picked=[];
     shuffle([...words,...others]).forEach(w=>{ const c=el("button","chip",esc(w));
       c.onclick=()=>{ if(c.classList.contains("used"))return; haptic("tap"); c.classList.add("used"); picked.push(w); const p=el("button","chip",esc(w));
         p.onclick=()=>{ const k=[...line.children].indexOf(p); picked.splice(k,1); p.remove(); c.classList.remove("used"); }; line.append(p); };
@@ -3805,13 +3825,143 @@ const UNITS = [
      ["choose","Он пришёл только в десять (поздно).","Przyszedł dopiero o dziesiątej.|Przyszedł tylko o dziesiątej.|Przyszedł już o dziesiątej."]]}
 ];
 
+/* ═════════════ СИТУАЦИИ ИЗ ЖИЗНИ: длинные фразы (« / » — границы смысловых кусков) ═════════════ */
+UNITS.push(
+ {life:true,ic:"🩺",lv:2,t:"У врача: запись и приём",pl:"U lekarza",
+  rule:"Как записаться к врачу, описать симптомы и понять рекомендации. В Польше сначала идут к lekarz rodzinny (семейный врач) — он даёт skierowanie (направление) к специалисту. Больничный — zwolnienie lekarskie (в разговоре «L4»).",
+  ex:["Chciałabym zapisać się do lekarza rodzinnego. — Я хотела бы записаться к семейному врачу.","Od trzech dni boli mnie gardło i mam gorączkę. — Уже три дня болит горло и температура.","Czy mogę dostać zwolnienie lekarskie? — Можно получить больничный?","Ile razy dziennie mam brać ten lek? — Сколько раз в день принимать это лекарство?"],
+  q:[["order","Добрый день, я хотела бы записаться к семейному врачу на ближайший свободный срок.","Dzień dobry, / chciałabym zapisać się / do lekarza rodzinnego / na najbliższy wolny termin."],
+     ["trans","Уже три дня у меня болит горло и высокая температура.","Od trzech dni boli mnie gardło i mam wysoką gorączkę.|Od trzech dni boli mnie gardło i mam wysoką temperaturę.|Od trzech dni mam ból gardła i wysoką gorączkę."],
+     ["forms","Сколько раз в день я должна принимать это лекарство?","Ile razy dziennie {musieć|muszę|musi|musieć} brać {ten lek|ten lek|tego leku|tym lekiem}?"],
+     ["choose","Попросить больничный на три дня:","Czy mogę dostać zwolnienie lekarskie na trzy dni?|Czy mogę dostać chorobowy papier na trzy dni?|Proszę dać mi bolniczny na trzy dni.","Больничный — zwolnienie lekarskie."],
+     ["order","Нужно ли мне направление к кардиологу, или я могу записаться сама?","Czy potrzebuję / skierowania do kardiologa, / czy mogę / zapisać się sama?"],
+     ["fix","С утра меня тошнит и кружится голова.","Od rana mnie mdli i kręci mi się w *głowa*.","głowie|głowę|głową","kręci mi się w głowie — кружится голова."]]},
+ {life:true,ic:"💊",lv:2,t:"В аптеке",pl:"W aptece",
+  rule:"В аптеке просят «coś na…» (что-нибудь от…): na kaszel, na ból głowy, na katar. Рецепт — recepta (сейчас чаще e-recepta: код из 4 цифр и PESEL). Аналог подешевле — tańszy zamiennik.",
+  ex:["Poproszę coś na ból głowy. — Дайте что-нибудь от головной боли.","Czy ten lek jest na receptę? — Это лекарство по рецепту?","Czy jest jakiś tańszy zamiennik? — Есть аналог подешевле?"],
+  q:[["order","Дайте, пожалуйста, что-нибудь от кашля и насморка для ребёнка.","Poproszę / coś na kaszel i katar / dla dziecka."],
+     ["choose","Спросить, нужен ли рецепт:","Czy ten lek jest dostępny bez recepty?|Czy ten lek jest dostępny bez receptu?|Czy na ten lek trzeba recept?"],
+     ["trans","Есть ли более дешёвый аналог этого лекарства?","Czy jest tańszy zamiennik tego leku?|Czy jest jakiś tańszy zamiennik tego leku?"],
+     ["forms","Сколько таблеток в день можно принимать?","Ile {tabletka|tabletek|tabletki|tabletka} dziennie {móc|można|mogę|może} brać?"],
+     ["fix","Дайте, пожалуйста, что-нибудь от головной боли.","Poproszę coś na ból *głowę*.","głowy|głowie|głową"]]},
+ {life:true,ic:"🚌",lv:2,t:"Проезд: автобус, трамвай, билеты",pl:"Komunikacja miejska",
+  rule:"Билет нужно skasować (прокомпостировать) сразу после входа. Выйти — wysiąść, пересесть — przesiąść się, остановка — przystanek. Проездной — bilet miesięczny.",
+  ex:["Gdzie mogę kupić bilet? — Где можно купить билет?","Czy ten tramwaj jedzie do centrum? — Этот трамвай едет в центр?","Na którym przystanku mam wysiąść? — На какой остановке мне выйти?","Bilet trzeba skasować zaraz po wejściu. — Билет нужно прокомпостировать сразу после входа."],
+  q:[["order","Извините, этот трамвай едет до главного вокзала?","Przepraszam, / czy ten tramwaj / jedzie / na dworzec główny?"],
+     ["trans","На какой остановке мне нужно выйти, чтобы доехать до больницы?","Na którym przystanku mam wysiąść, żeby dojechać do szpitala?|Na którym przystanku muszę wysiąść, żeby dojechać do szpitala?|Na którym przystanku powinnam wysiąść, żeby dojechać do szpitala?"],
+     ["choose","Купить один обычный билет:","Poproszę bilet normalny, jednoprzejazdowy.|Daj mi jeden normalny bilet przejazd.|Chcę kupić bilet na jeden raz jechać."],
+     ["forms","Билет нужно прокомпостировать сразу после входа в автобус.","Bilet trzeba {skasować|skasować|kasuje|skasował} zaraz po {wejście|wejściu|wejście|wejścia} do {autobus|autobusu|autobusie|autobus}."],
+     ["order","Сколько стоит месячный проездной для студентов?","Ile kosztuje / bilet miesięczny / dla studentów?"],
+     ["fix","Я пропустила свою остановку — что мне теперь делать?","*Przegapiłem* swój przystanek, co mam teraz zrobić?","Przegapiłam|Przegapiła|Przegapili","Женщина о себе: -łam."]]},
+ {life:true,ic:"🚆",lv:3,t:"Вокзал и поезд",pl:"Na dworcu i w pociągu",
+  rule:"Место в поезде — miejscówka, платформа — peron, путь — tor, пересадка — przesiadka, опоздание поезда — opóźnienie. «Поезд опаздывает на 20 минут» — Pociąg jest opóźniony o dwadzieścia minut.",
+  ex:["Poproszę bilet do Krakowa na jutro rano. — Билет до Кракова на завтра утром.","Z którego peronu odjeżdża pociąg do Warszawy? — С какой платформы поезд на Варшаву?","Pociąg jest opóźniony o dwadzieścia minut. — Поезд опаздывает на двадцать минут.","Czy to miejsce jest wolne? — Это место свободно?"],
+  q:[["order","Будьте добры, один билет до Кракова на завтрашний утренний поезд, у окна.","Poproszę / jeden bilet do Krakowa / na jutrzejszy poranny pociąg, / przy oknie."],
+     ["trans","С какой платформы отходит поезд до Варшавы?","Z którego peronu odjeżdża pociąg do Warszawy?"],
+     ["choose","Объявление: поезд опаздывает на 20 минут.","Pociąg jest opóźniony o dwadzieścia minut.|Pociąg spóźnia na dwadzieścia minut.|Pociąg jest późny o dwadzieścia minut."],
+     ["forms","Мне нужно делать пересадку в Познани или поезд идёт напрямую?","Czy {musieć|muszę|musi|musieć} się przesiadać w {Poznań|Poznaniu|Poznań|Poznania}, czy pociąg jedzie {bezpośredni|bezpośrednio|bezpośredni|bezpośrednią}?"],
+     ["fix","Можно ли вернуть билет, если я не поеду?","Czy mogę *oddać* bilet, jeśli nie pojadę?","zwrócić|wrócić|odwrócić","Официально — zwrócić bilet."]]},
+ {life:true,ic:"💼",lv:4,t:"Собеседование и вопросы работодателю",pl:"Rozmowa o pracę",
+  rule:"На собеседовании говорят о doświadczenie (опыт), obowiązki (обязанности), wynagrodzenie (зарплата), umowa o pracę (трудовой договор) или umowa zlecenie (договор поручения). Зарплату обсуждают «brutto» или «netto» (до/после налогов).",
+  ex:["Od pięciu lat pracuję jako księgowa. — Пять лет работаю бухгалтером.","Jakie są godziny pracy? — Какой график работы?","Na jaką umowę mogę liczyć? — На какой договор я могу рассчитывать?","Moją mocną stroną jest dokładność. — Моя сильная сторона — аккуратность."],
+  q:[["order","Я работаю бухгалтером пять лет, последние два года — в международной компании.","Pracuję jako księgowa / od pięciu lat, / w tym ostatnie dwa lata / w międzynarodowej firmie."],
+     ["trans","Какой график работы и есть ли возможность работать удалённо?","Jakie są godziny pracy i czy jest możliwość pracy zdalnej?|Jakie są godziny pracy i czy jest możliwość pracy z domu?"],
+     ["choose","Спросить о договоре:","Na jaką umowę mogę liczyć — o pracę czy zlecenie?|Jaki kontrakt mi dacie, trudowy czy nie?|Czy umowa będzie z pracy?"],
+     ["forms","Моя сильная сторона в том, что я быстро учусь и умею работать в команде.","Moją mocną stroną jest to, że szybko {uczyć się|się uczę|się uczyć|się uczy} i {umieć|umiem|umie|umieć} pracować w {zespół|zespole|zespół|zespołem}."],
+     ["order","Когда я могу ожидать ответа по итогам собеседования?","Kiedy mogę się spodziewać / odpowiedzi / w sprawie wyników / rozmowy?"],
+     ["choose","Назвать ожидания по зарплате:","Moje oczekiwania finansowe to około sześciu tysięcy złotych brutto.|Ja chcę sześć tysięcy złotych i nie mniej.|Moja zarplata ma być sześć tysięcy."],
+     ["fix","Я хотела бы узнать больше об обязанностях на этой должности.","Chciałabym dowiedzieć się więcej o obowiązkach na tym *stanowisko*.","stanowisku|stanowiskiem|stanowiska"]]},
+ {life:true,ic:"🧑‍💼",lv:3,t:"На работе: начальник и коллеги",pl:"W pracy",
+  rule:"Отгул — dzień wolny / wolne, смена — zmiana, сверхурочные — nadgodziny, повышение зарплаты — podwyżka. Вежливая просьба к начальнику — через «czy mogę…» или «czy mógłby Pan…».",
+  ex:["Czy mogę wziąć jutro dzień wolny? — Можно мне завтра взять выходной?","Niestety nie zdążę skończyć raportu do piątku. — К сожалению, не успею закончить отчёт к пятнице.","Czy mógłbyś mi pomóc z tym zadaniem? — Мог бы ты помочь мне с этим заданием?","Przepraszam za spóźnienie, był korek. — Извините за опоздание, была пробка."],
+  q:[["order","Можно мне взять выходной в пятницу? Мне нужно сходить в ведомство.","Czy mogę / wziąć wolne w piątek, / bo muszę / pójść do urzędu?"],
+     ["trans","Извините, я, к сожалению, не успею закончить отчёт к пятнице.","Przepraszam, niestety nie zdążę skończyć raportu do piątku.|Przepraszam, ale niestety nie zdążę skończyć raportu do piątku."],
+     ["forms","Не мог бы ты помочь мне с этой задачей, когда найдёшь минутку?","Czy {móc (ty, мужчина)|mógłbyś|możesz być|mógłbym} mi pomóc z tym {zadanie|zadaniem|zadanie|zadania}, kiedy {znaleźć|znajdziesz|znalazłeś|znajdować} chwilę?"],
+     ["choose","Извиниться за опоздание:","Przepraszam za spóźnienie, na moście był ogromny korek.|Sorry za opóźnienie, była probka na moście.|Przepraszam, spóźniłam przez korek na moście."],
+     ["order","С понедельника я работаю во вторую смену, с двух до десяти вечера.","Od poniedziałku / pracuję na drugą zmianę, / od czternastej / do dwudziestej drugiej."],
+     ["fix","Я хотела бы поговорить о повышении зарплаты.","Chciałabym porozmawiać o *podwyżka*.","podwyżce|podwyżkę|podwyżki","rozmawiać o + местный падеж: o podwyżce."]]},
+ {life:true,ic:"🏛️",lv:4,t:"Ведомство и документы",pl:"W urzędzie",
+  rule:"Заявление — wniosek (składać wniosek — подавать заявление), справка — zaświadczenie, приложить — dołączyć, рассмотрение — rozpatrzenie. К чиновнику обращаются «Pan/Pani»: «czy mogłaby Pani…».",
+  ex:["Chciałabym złożyć wniosek o kartę pobytu. — Хочу подать заявление на карту побыту.","Jakie dokumenty muszę dołączyć do wniosku? — Какие документы нужно приложить?","Ile trwa rozpatrzenie wniosku? — Сколько длится рассмотрение?","Gdzie mogę dostać numer PESEL? — Где получить номер PESEL?"],
+  q:[["order","Добрый день, я хотела бы подать заявление на временную карту побыту.","Dzień dobry, / chciałabym złożyć wniosek / o kartę pobytu / czasowego."],
+     ["trans","Какие документы я должна приложить к заявлению?","Jakie dokumenty muszę dołączyć do wniosku?|Jakie dokumenty powinnam dołączyć do wniosku?"],
+     ["choose","Спросить о сроке рассмотрения:","Ile czasu trwa rozpatrzenie wniosku?|Jak długo będziecie myśleć nad wnioskiem?|Kiedy wniosek będzie zrobiony gotowy?"],
+     ["forms","Нужно ли записываться заранее через интернет, или можно прийти без записи?","Czy {musieć|muszę|musi|musieć} umówić się wcześniej przez {internet|internet|internetu|internecie}, czy można przyjść bez {umówiona wizyta|umówionej wizyty|umówiona wizyta|umówioną wizytą}?"],
+     ["order","Я не понимаю этот пункт. Не могли бы вы объяснить, что здесь нужно вписать?","Nie rozumiem tego punktu, / czy mogłaby Pani wyjaśnić, / co należy / tu wpisać?"],
+     ["fix","У меня нет с собой паспорта, только удостоверение.","Nie mam przy sobie *paszport*, tylko dowód.","paszportu|paszportem|paszporcie","После «nie mam» — родительный."]]},
+ {life:true,ic:"🏠",lv:3,t:"Квартира: аренда, поломки, соседи",pl:"Mieszkanie",
+  rule:"Аренда — najem, плата — czynsz, коммунальные — opłaty / media, залог — kaucja, мастер — fachowiec, хозяин — właściciel. «Сломалось» — zepsuło się / zepsuła się (стиралка).",
+  ex:["Ile wynosi czynsz razem z opłatami? — Сколько аренда вместе с платежами?","Kaucja to jeden czynsz. — Залог — одна месячная плата.","Zepsuła się pralka, czy może Pan przysłać fachowca? — Сломалась стиралка, можете прислать мастера?","Od wczoraj nie ma ciepłej wody. — Со вчера нет горячей воды."],
+  q:[["order","Сколько стоит аренда вместе со всеми платежами за воду и электричество?","Ile wynosi czynsz / razem ze wszystkimi opłatami / za wodę / i prąd?"],
+     ["trans","Со вчерашнего дня у нас нет горячей воды. Можете прислать мастера?","Od wczoraj nie mamy ciepłej wody, czy może Pan przysłać fachowca?|Od wczoraj nie ma ciepłej wody, czy może Pan przysłać fachowca?"],
+     ["choose","Сообщить хозяину о поломке:","Zepsuła się pralka i woda cieknie na podłogę.|Pralka zepsuła się sama i leje woda na pol.|Pralka jest zepsuta, woda idzie na podłogę."],
+     ["forms","Можно ли держать в квартире кошку, или хозяин против?","Czy {móc|można|mogę|może} trzymać w {mieszkanie|mieszkaniu|mieszkanie|mieszkania} {kot|kota|kot|kotem}, czy właściciel jest przeciwny?"],
+     ["fix","Соседи сверху каждый вечер очень шумят.","Sąsiedzi z góry co wieczór bardzo *hałasuje*.","hałasują|hałasował|hałasować","sąsiedzi (они) → hałasują."],
+     ["order","Когда я буду съезжать, верните мне, пожалуйста, залог.","Kiedy się wyprowadzę, / proszę / zwrócić mi / kaucję."]]},
+ {life:true,ic:"🏦",lv:3,t:"Банк и почта",pl:"Bank i poczta",
+  rule:"Счёт — konto, перевод — przelew (przelać pieniądze), заблокировать карту — zablokować kartę. На почте: отправить — nadać, заказное письмо — list polecony, уведомление о вручении — potwierdzenie odbioru.",
+  ex:["Chciałabym otworzyć konto osobiste. — Хочу открыть личный счёт.","Zgubiłam kartę, proszę ją zablokować. — Я потеряла карту, заблокируйте её.","Chciałabym nadać paczkę za granicę. — Хочу отправить посылку за границу.","Ile kosztuje list polecony? — Сколько стоит заказное письмо?"],
+  q:[["order","Я потеряла банковскую карту, прошу срочно её заблокировать.","Zgubiłam kartę płatniczą, / proszę / pilnie / ją zablokować."],
+     ["trans","Я хотела бы открыть счёт и получить карту.","Chciałabym otworzyć konto i dostać kartę.|Chciałabym założyć konto i dostać kartę."],
+     ["choose","Отправить посылку в Украину:","Chciałabym nadać tę paczkę do Ukrainy.|Chcę wysłać tę posyłkę na Ukrainę.|Chciałabym dać paczkę do Ukrainy pocztą."],
+     ["forms","Сколько стоит заказное письмо с уведомлением о вручении?","Ile {kosztować|kosztuje|kosztują|kosztował} list polecony za {potwierdzenie odbioru|potwierdzeniem odbioru|potwierdzenie odbioru|potwierdzenia odbioru}?"],
+     ["fix","Я хотела бы перевести деньги на другой счёт.","Chciałabym przelać pieniądze na inne *konta*.","konto|kontem|koncie"]]},
+ {life:true,ic:"🛍️",lv:4,t:"Магазин: возврат и жалоба",pl:"Zwrot i reklamacja",
+  rule:"Вернуть товар — zwrócić towar (zwrot), обменять — wymienić, жалоба на брак — reklamacja (złożyć reklamację), чек — paragon, бракованный — wadliwy. Покупки онлайн можно вернуть в течение 14 дней.",
+  ex:["Chciałabym zwrócić ten towar, mam paragon. — Хочу вернуть товар, чек есть.","Buty rozkleiły się po tygodniu. — Обувь расклеилась через неделю.","Czy mogę wymienić ten sweter na mniejszy rozmiar? — Можно обменять свитер на размер меньше?","Chciałabym złożyć reklamację. — Хочу подать рекламацию."],
+  q:[["order","Я хотела бы вернуть эти ботинки, потому что они расклеились через неделю.","Chciałabym zwrócić / te buty, / bo rozkleiły się / po tygodniu."],
+     ["trans","Можно обменять этот свитер на размер поменьше? Чек у меня есть.","Czy mogę wymienić ten sweter na mniejszy rozmiar? Mam paragon.|Czy mogę wymienić ten sweter na mniejszy rozmiar? Paragon mam."],
+     ["choose","Подать жалобу на брак:","Chciałabym złożyć reklamację, bo towar jest wadliwy.|Chcę zrobić skargę, bo rzecz jest zepsuta.|Daję reklamację, bo towar ma brak."],
+     ["forms","Сколько дней у меня есть на возврат товара, купленного через интернет?","Ile {dzień|dni|dnia|dniach} mam na {zwrot|zwrot|zwrotu|zwrotem} towaru {kupić|kupionego|kupiony|kupując} przez internet?"],
+     ["fix","Когда я получу деньги обратно?","Kiedy *dostanie* z powrotem pieniądze?","dostanę|dostałam|dostać","Я — dostanę."]]},
+ {life:true,ic:"🎒",lv:3,t:"Школа и детский сад",pl:"Szkoła i przedszkole",
+  rule:"Детский сад — przedszkole, родительское собрание — zebranie z rodzicami (разг. wywiadówka), забрать ребёнка — odebrać dziecko, отпросить — usprawiedliwić nieobecność. Учителю пишут через «Pani/Pan».",
+  ex:["Chciałabym zapisać syna do przedszkola. — Хочу записать сына в детский сад.","Córka jest dziś chora i nie przyjdzie do szkoły. — Дочь болеет и не придёт в школу.","Kiedy jest zebranie z rodzicami? — Когда родительское собрание?","Czy mogę odebrać dziecko wcześniej? — Можно забрать ребёнка раньше?"],
+  q:[["order","Добрый день, дочь сегодня заболела и не придёт в школу.","Dzień dobry, / córka dziś zachorowała / i nie przyjdzie / do szkoły."],
+     ["trans","Когда будет родительское собрание?","Kiedy będzie zebranie z rodzicami?|Kiedy jest zebranie z rodzicami?|Kiedy będzie wywiadówka?"],
+     ["choose","Попросить забрать сына пораньше:","Czy mogłabym dziś odebrać syna wcześniej, o czternastej?|Czy ja mogę dziś zabrać syna raniej?|Czy można syn odebrać dziś wcześnie?"],
+     ["forms","Мой сын плохо понимает по-польски, и ему нужна помощь.","Mój syn słabo {rozumieć|rozumie|rozumiem|rozumieć} po polsku i {potrzebować|potrzebuje|potrzebuję|potrzebował} {pomoc|pomocy|pomoc|pomocą}."],
+     ["fix","Я хочу записать сына в детский сад рядом с домом.","Chcę zapisać syna do *przedszkole* obok domu.","przedszkola|przedszkolu|przedszkolem","do + родительный: do przedszkola."]]},
+ {life:true,ic:"📞",lv:4,t:"Разговор по телефону",pl:"Przez telefon",
+  rule:"Звоню по поводу… — Dzwonię w sprawie…, перенести визит — przełożyć wizytę, перезвонить — oddzwonić, оставить сообщение — zostawić wiadomość. Если плохо слышно: «Przepraszam, źle słyszę».",
+  ex:["Dzwonię w sprawie wizyty na jutro. — Звоню по поводу визита на завтра.","Czy mogę przełożyć wizytę na inny termin? — Можно перенести визит?","Niestety źle słyszę, czy może Pan powtórzyć? — Плохо слышно, можете повторить?","Proszę oddzwonić po piętnastej. — Перезвоните после трёх."],
+  q:[["order","Добрый день, звоню по поводу завтрашнего визита — хотела бы перенести его на другой день.","Dzień dobry, / dzwonię w sprawie / jutrzejszej wizyty, / chciałabym przełożyć ją / na inny dzień."],
+     ["trans","Извините, плохо слышно. Не могли бы вы повторить медленнее?","Przepraszam, źle słyszę, czy może Pan powtórzyć wolniej?|Przepraszam, słabo słyszę, czy może Pan powtórzyć wolniej?|Przepraszam, źle słyszę, czy mogłaby Pani powtórzyć wolniej?"],
+     ["choose","Попросить перезвонить:","Czy mógłby Pan oddzwonić po piętnastej?|Czy może Pan zadzwonić z powrotem po trzeciej?|Perezwońcie mi po piętnastej."],
+     ["forms","Я не могу сейчас говорить, перезвоню вам через полчаса.","Nie {móc|mogę|może|móc} teraz rozmawiać, {oddzwonić|oddzwonię|oddzwaniam|oddzwonić} za pół {godzina|godziny|godzina|godziną}."],
+     ["fix","Можно оставить сообщение для пани Анны?","Czy mogę zostawić wiadomość dla pani *Anna*?","Anny|Annie|Anną","dla + родительный: dla Anny."]]}
+);
+
+/* ═════════════ ТЕСТ УРОВНЯ: 3 вопроса на уровень ═════════════ */
+const LEVEL_TEST = [
+ [1,"Как сказать «У меня есть сестра»?","Mam siostrę.|Jestem siostra.|Mam siostra."],
+ [1,"Что значит «Ile kosztuje chleb?»","Сколько стоит хлеб?|Где хлеб?|Какой это хлеб?"],
+ [1,"Ответ на «Jak masz na imię?»","Mam na imię Ola.|Mam lat Ola.|Jestem imię Ola."],
+ [2,"Вчера я была у врача.","Wczoraj byłam u lekarza.|Wczoraj byłam do lekarza.|Wczoraj jestem u lekarza."],
+ [2,"Nie mam ___.","czasu|czas|czasem"],
+ [2,"Idę ___ pracy.","do|na|w"],
+ [3,"Мне нравится этот фильм.","Podoba mi się ten film.|Podoba się mi ten film.|Mi podoba ten film się."],
+ [3,"Jutro ___ do ciebie (один раз).","zadzwonię|będę zadzwonić|zadzwoniłam"],
+ [3,"To kobieta, ___ pomagam.","której|którą|która"],
+ [4,"Gdybym miała czas, ___.","pojechałabym|pojadę|pojechałam"],
+ [4,"W pokoju było pięciu ___.","mężczyzn|mężczyźni|mężczyzny"],
+ [4,"Я совершила ошибку.","Popełniłam błąd.|Zrobiłam błąd.|Wykonałam błąd."],
+ [5,"___ do domu, spotkałam sąsiadkę.","Wracając|Wracający|Wracana"],
+ [5,"Ta sprawa dotyczy ___ (wszyscy).","wszystkich|wszystkim|wszyscy"],
+ [5,"Что значит «owijać w bawełnę»?","говорить уклончиво, ходить вокруг да около|упаковывать подарки|шить одежду"],
+ [6,"Nie sądzę, ___ to był dobry pomysł.","żeby|że|bo"],
+ [6,"Dowiedziałam się o tym ___ wczoraj (не раньше).","dopiero|tylko|już"],
+ [6,"Что значит «krotochwilny»?","шутливый, забавный|кратковременный|шаткий"]
+];
+
 /* ═════════════ KONSTRUKTOR ZDAŃ — движок ═════════════ */
 const UQ=[]; UNITS.forEach((u,ui)=>u.q.forEach((q,qi)=>UQ.push({ui,qi,u,q,id:"unit:"+(ui*100+qi)})));
 const uqById=id=>UQ.find(x=>x.id===id);
 // фразы курса — в общий банк перевода (Deszcz klocków, Trening)
-UQ.forEach(x=>{ if(x.q[0]==="order"||x.q[0]==="trans"){ const v=x.q[2].split("|"); SENTS.push({lv:x.u.lv,ru:x.q[1],pl:v[0],alts:v.slice(1)}); } });
+const unchunk=t=>t.replace(/ \/ /g," ");
+UQ.forEach(x=>{ if(x.q[0]==="order"||x.q[0]==="trans"){ const v=x.q[2].split("|").map(unchunk); SENTS.push({lv:x.u.lv,ru:x.q[1],pl:v[0],alts:v.slice(1)}); } });
 // и в «Zdanie z baniek»: [рус, польский, лишние слова, варианты]
-UQ.filter(x=>x.q[0]==="order").forEach(x=>{ const v=x.q[2].split("|"); DATA.build.push([x.q[1],v[0],"się|nie",v.slice(1).join("|")||undefined]); });
+UQ.filter(x=>x.q[0]==="order"&&unchunk(x.q[2].split("|")[0]).split(" ").length<=9).forEach(x=>{ const v=x.q[2].split("|").map(unchunk); DATA.build.push([x.q[1],v[0],"się|nie",v.slice(1).join("|")||undefined]); });
 
 function renderUQ(box,q,done,opts={}){
   const [type,ru]=q; let answered=false;
@@ -3823,8 +3973,12 @@ function renderUQ(box,q,done,opts={}){
   if(type!=="trans") box.append(el("p","q big",esc(ru)));
   const lvn=LV_N[S.level]||3;
   if(type==="order"){
-    const v=q[2].split("|"), words=v[0].replace(/[.?!,]/g,"").split(" ");
-    const others=shuffle(UQ.filter(x=>x.q[0]==="order"&&x.q!==q).flatMap(x=>x.q[2].split("|")[0].replace(/[.?!,]/g,"").split(" ")).filter(w=>!words.includes(w))).slice(0,lvn>=3?2:1);
+    const v=q[2].split("|").map(x=>x.trim()), chunked=v[0].includes(" / ");
+    const tileOf=t=>t.includes(" / ")?t.split(" / ").map(c=>c.replace(/[.?!]$/,"").replace(/,$/,"")):t.replace(/[.?!,]/g,"").split(" ");
+    const words=tileOf(v[0]);
+    const others=shuffle(UQ.filter(x=>x.q[0]==="order"&&x.q!==q&&x.q[2].includes(" / ")===chunked).flatMap(x=>tileOf(x.q[2].split("|")[0])).filter(w=>!words.includes(w))).slice(0,chunked?1:(lvn>=3?2:1));
+    v.forEach((t,k)=>v[k]=unchunk(t));
+    if(chunked) box.append(el("p","note",esc(ui("Собирай фразу смысловыми кусками — так её легче запомнить целиком.","Układaj zdanie z kawałków — tak łatwiej je zapamiętać."))));
     const line=el("div","line"), pool=el("div","pool"), picked=[];
     shuffle([...words,...others]).forEach(w=>{ const c=el("button","chip",esc(w));
       c.onclick=()=>{ if(answered||c.classList.contains("used")) return; haptic("tap"); c.classList.add("used"); picked.push(w); const p=el("button","chip",esc(w));
@@ -3906,17 +4060,23 @@ function renderUnitList(){
   const area=gArea(); area.innerHTML=""; gMain(null);
   const lv=LV_N[S.level]||3, done=Object.values(S.units||{}).reduce((a,b)=>a+b,0);
   gInfo("★ "+done+"/"+UNITS.length*3);
-  area.append(el("p","hint",esc(ui("Здесь учимся строить предложения: короткое правило с примерами, потом практика — собрать фразу, поставить слова в нужную форму, найти ошибку, перевести. Сначала — уроки твоего уровня.","Tu uczymy się budować zdania: krótka reguła z przykładami, potem praktyka. Najpierw lekcje na twoim poziomie."))));
-  UNITS.map((u,i)=>[u,i]).sort((a,b)=>Math.abs(a[0].lv-lv)-Math.abs(b[0].lv-lv)||a[0].lv-b[0].lv||a[1]-b[1]).forEach(([u,i])=>{
+  const tab=S.unitTab==="life"?"life":"gram";
+  const seg=el("div","seg glass");
+  [["gram","🧩 "+ui("Грамматика","Gramatyka")],["life","🗣️ "+ui("Ситуации из жизни","Sytuacje z życia")]].forEach(([k,lab])=>{ const b=el("button","",esc(lab)); b.setAttribute("aria-selected",tab===k); b.onclick=()=>{ S.unitTab=k; save(); haptic("tap"); renderUnitList(); }; seg.append(b); });
+  area.append(seg);
+  area.append(el("p","hint",esc(tab==="life"
+    ?ui("Длинные фразы, которые реально нужны: врач, работа, проезд, документы, квартира. Сначала — разговорник, потом собираешь фразы кусками и переводишь сама.","Długie zdania z życia: lekarz, praca, transport, urząd, mieszkanie. Najpierw rozmówki, potem praktyka.")
+    :ui("Как строить предложения: короткое правило с примерами, потом практика — собрать фразу, поставить слова в нужную форму, найти ошибку, перевести. Сначала — уроки твоего уровня.","Jak budować zdania: krótka reguła z przykładami, potem praktyka."))));
+  UNITS.map((u,i)=>[u,i]).filter(([u])=>!!u.life===(tab==="life")).sort((a,b)=>Math.abs(a[0].lv-lv)-Math.abs(b[0].lv-lv)||a[0].lv-b[0].lv||a[1]-b[1]).forEach(([u,i])=>{
     const st=(S.units||{})[i]||0;
-    const b=el("button","lvl glass unitc"+(Math.abs(u.lv-lv)<=1?" mine":""),'<span class="code">'+["A1","A2","B1","B2","C1","C2"][u.lv-1]+'</span><span class="tx"><span class="nm">'+esc(u.t)+'</span><span class="ds">'+esc(u.pl)+' · '+u.q.length+' '+esc(ui("заданий","zadań"))+'</span></span><span class="stars">'+stars(st)+'</span>');
+    const b=el("button","lvl glass unitc"+(Math.abs(u.lv-lv)<=1?" mine":""),'<span class="code">'+(u.ic?'<span class="uic">'+u.ic+'</span>':"")+["A1","A2","B1","B2","C1","C2"][u.lv-1]+'</span><span class="tx"><span class="nm">'+esc(u.t)+'</span><span class="ds">'+esc(u.pl)+' · '+u.q.length+' '+esc(ui("заданий","zadań"))+'</span></span><span class="stars">'+stars(st)+'</span>');
     b.onclick=()=>{ haptic("tap"); openUnit(i); }; area.append(b); });
 }
 function openUnit(i){
   const u=UNITS[i], area=gArea(); area.innerHTML=""; gMain(null); gInfo(["A1","A2","B1","B2","C1","C2"][u.lv-1]);
   const back=el("button","say",esc(ui("← все уроки","← wszystkie lekcje"))); back.onclick=renderUnitList; area.append(back);
   area.append(el("p","q big",esc(u.t)));
-  const rc=el("div","rulecard"); rc.append(el("p","eyebrow","📘 "+esc(ui("Правило","Reguła"))), el("p","",esc(u.rule)));
+  const rc=el("div","rulecard"); rc.append(el("p","eyebrow",u.life?"💬 "+esc(ui("Разговорник: нажми, чтобы послушать","Rozmówki: stuknij, żeby posłuchać")):"📘 "+esc(ui("Правило","Reguła"))), el("p","",esc(u.rule)));
   const exl=el("div","exlist"); u.ex.forEach(e=>{ const pl=e.split(" — ")[0].split(" → ").pop(); const b=el("button","exrow",'<span>🔊</span><span>'+esc(e)+'</span>'); b.onclick=()=>speak(e.split(" — ")[0].replace(" → ",". "),true); exl.append(b); });
   rc.append(exl); area.append(rc);
   gMain(ui("Начать практику","Zacznij ćwiczenia")+" · "+u.q.length,()=>runUnit(i));
@@ -3940,6 +4100,39 @@ function finishUnit(i,ok,n){
   area.append(el("p","hint center",esc(st===3?ui("Отлично! Эта конструкция у тебя в кармане.","Świetnie! Ta konstrukcja jest twoja."):ui("Ошибки уже в повторении — они вернутся в Trening ∞. Можно пройти урок ещё раз.","Błędy trafiły do powtórek. Możesz przejść lekcję jeszcze raz."))));
   const row=el("div","row"); const again=el("button","ghost glass",esc(ui("Ещё раз","Jeszcze raz"))); again.onclick=()=>runUnit(i);
   const list=el("button","primary glint",esc(ui("К урокам","Do lekcji"))); list.onclick=renderUnitList; row.append(again,list); area.append(row);
+}
+
+/* ═════════════ ТЕСТ УРОВНЯ ═════════════ */
+function openLevelTest(){
+  stopGame(); game={key:"test",cleanup:null}; lastMode="test"; show("game");
+  $("#gTitle").textContent=ui("Тест уровня","Test poziomu"); gArea().className="card glass"; gMain(null);
+  const qs=LEVEL_TEST, sc=[0,0,0,0,0,0,0]; let i=0;
+  const go=()=>{ i++; i<qs.length?step():result(); };
+  const step=()=>{
+    const area=gArea(); area.innerHTML=""; gInfo((i+1)+"/"+qs.length);
+    const [lv,q,o]=qs[i], op=o.split("|");
+    area.append(el("div","tbar",'<i style="width:'+Math.round(i/qs.length*100)+'%"></i>'));
+    if(i===0) area.append(el("p","hint",esc(ui("18 вопросов, от простых к сложным. Не знаешь — жми «Не знаю», не угадывай: так результат будет честнее.","18 pytań, od łatwych do trudnych. Nie wiesz — stuknij „Nie wiem”, nie zgaduj."))));
+    area.append(el("p","q big",esc(q).replace("___",'<span class="gap">?</span>')));
+    const wrap=el("div","opts");
+    shuffle(op).forEach(x=>{ const b=el("button","opt",esc(x)); b.onclick=()=>{ [...wrap.children].forEach(y=>y.disabled=true); const ok=x===op[0]; if(ok) sc[lv]++; b.classList.add(ok?"right":"wrong"); haptic(ok?"success":"error"); setTimeout(go,500); }; wrap.append(b); });
+    const idk=el("button","say",esc(ui("Не знаю","Nie wiem"))); idk.onclick=go;
+    area.append(wrap,idk);
+  };
+  const result=()=>{
+    let rec=1; for(let l=1;l<=6;l++){ if(sc[l]>=2) rec=Math.min(6,l+1); else break; }
+    const L0=LEVELS[rec-1], area=gArea(); area.innerHTML=""; gInfo(""); haptic("success");
+    area.append(el("p","eyebrow center",esc(ui("Твой результат","Twój wynik"))), el("p","score shine center",L0.k), el("p","q center",esc(L0.pl)+'<br><small class="note">'+esc(L0.nm)+'</small>'));
+    const rows=el("div","lvres");
+    LEVELS.forEach((l,k)=>{ const n=sc[k+1]; rows.append(el("div","lvrow"+(k+1===rec?" me":""),'<b>'+l.k+'</b><span class="lvb"><i style="width:'+Math.round(n/3*100)+'%"></i></span><span>'+n+'/3 '+(n>=2?"✓":"")+'</span>')); });
+    area.append(rows);
+    area.append(el("p","hint",esc(rec===6&&sc[6]>=2
+      ?ui("Ты отлично знаешь польский. Тебе подходит C2: редкие слова, стиль и тонкости.","Znasz polski świetnie. Pasuje ci C2.")
+      :ui("Всё, что ниже "+L0.k+", ты уже знаешь, а на этом уровне начинаются пробелы — их и будем закрывать. ","Wszystko poniżej "+L0.k+" już znasz, a tu zaczynają się luki. ")+L0.ru)));
+    gMain(ui("Выбрать уровень ","Wybierz poziom ")+L0.k,()=>{ S.level=L0.k; save(); applyTexts(); show("home"); toast("✓ "+ui("Уровень ","Poziom ")+L0.k); });
+    const again=el("button","say",esc(ui("Пройти ещё раз","Jeszcze raz"))); again.onclick=openLevelTest; area.append(again);
+  };
+  step();
 }
 
 /* ═════════════ ЕЖЕДНЕВНЫЙ ПРОГРЕСС: задания дня, неделя, ранги ═════════════ */
@@ -4026,7 +4219,8 @@ function renderSettings(){
   const onoff=(k)=>seg([[true,L().on],[false,L().off]],S[k],v=>S[k]=v);
   row(L().sLang,esc(L().sLangD),seg([["auto","Auto"],["ru","Русский"],["pl","Polski"]],S.lang,v=>S.lang=v));
   const lv=el("button","chipbtn glass",'<b>'+lvl().k+'</b> · '+esc(lvl().pl)); lv.onclick=()=>{ renderLevels(); show("level"); };
-  row(L().sLevel,null,lv);
+  const lvw=el("div","segopts"); const tbt=el("button","",esc("🎯 "+ui("Тест уровня","Test poziomu"))); tbt.onclick=openLevelTest; lvw.append(lv,tbt);
+  row(L().sLevel,null,lvw);
   row(L().sHints,esc(L().sHintsD),onoff("hints"));
   row(L().sTrans,esc(L().sTransD),onoff("trans"));
   row(L().sExplain,esc(L().sExplainD),onoff("explain"));
