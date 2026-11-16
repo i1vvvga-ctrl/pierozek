@@ -635,6 +635,14 @@ mark{background:color-mix(in srgb,var(--bad) 40%,transparent);color:inherit;bord
 .lvrow.me{background:color-mix(in srgb,var(--accent) 18%,transparent)}
 .lvb{height:8px;border-radius:8px;background:var(--line);overflow:hidden}
 .lvb i{display:block;height:100%;background:var(--ok)}
+/* Фразы */
+.seg.seg3{grid-template-columns:repeat(3,1fr)}
+.seg.seg3 button{font-size:13px;padding:10px 4px}
+.exrow.far{opacity:.55}
+.lvchip{font-size:10px;font-weight:800;border-radius:6px;padding:2px 5px;background:var(--line);align-self:flex-start;flex:none}
+.okw{color:var(--ok)} .badw{color:var(--bad)}
+.chip.rightc{box-shadow:inset 0 0 0 2px var(--ok)}
+.frgrid .mode .pl{font-size:13.5px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -1199,7 +1207,7 @@ const haptic=(t)=>{try{ if(!tg||!tg.HapticFeedback) return; t==="tap"?tg.HapticF
 
 /* ═════════════ ПРОГРЕСС: Telegram CloudStorage + запасная копия в телефоне ═════════════ */
 const KEY="ppp_v2";
-let S={level:null,skin:"simka",voice:true,streak:0,last:null,today:0,todayDate:null,ok:0,all:0,miss:[],pierogi:0,tab:"learn",lang:"auto",hints:true,trans:true,explain:true,rate:"normal",goal:20,unknown:[],srs:{},hist:{},stories:[],best:0,dq:null,units:{},unitTab:"gram",p5seen:false,ukSeen:false,ukSeen2:false,dailyCollapsed:false,kbest:0,dbest:0,sbest:0,loginDay:0,loginStreak:0,badgesGot:[]};
+let S={level:null,skin:"simka",voice:true,streak:0,last:null,today:0,todayDate:null,ok:0,all:0,miss:[],pierogi:0,tab:"learn",lang:"auto",hints:true,trans:true,explain:true,rate:"normal",goal:20,unknown:[],srs:{},hist:{},stories:[],best:0,dq:null,units:{},fstars:{},unitTab:"gram",p5seen:false,ukSeen:false,ukSeen2:false,dailyCollapsed:false,kbest:0,dbest:0,sbest:0,loginDay:0,loginStreak:0,badgesGot:[]};
 function sanitize(o){
   if(!o||typeof o!=="object") return {};
   const r={};
@@ -1219,7 +1227,8 @@ function sanitize(o){
   if(Number.isFinite(o.best)) r.best=Math.floor(o.best);
   if(o.dq&&Number.isFinite(o.dq.day)&&Array.isArray(o.dq.q)&&o.dq.q.every(q=>Array.isArray(q)&&q.length===4&&typeof q[0]==="string"&&q.slice(1).every(Number.isFinite))) r.dq={day:o.dq.day,q:o.dq.q.slice(0,3),bonus:o.dq.bonus?1:0};
   if(o.units&&typeof o.units==="object"){ r.units={}; Object.entries(o.units).forEach(([k,v])=>{ if(/^\d{1,3}$/.test(k)&&[1,2,3].includes(v)) r.units[k]=v; }); }
-  if(o.unitTab==="life"||o.unitTab==="gram") r.unitTab=o.unitTab;
+  if(["life","gram","fr"].includes(o.unitTab)) r.unitTab=o.unitTab;
+  if(o.fstars&&typeof o.fstars==="object"){ r.fstars={}; Object.entries(o.fstars).forEach(([k,v])=>{ if(/^\d{1,3}$/.test(k)&&[1,2,3].includes(v)) r.fstars[k]=v; }); }
   if(typeof o.p5seen==="boolean") r.p5seen=o.p5seen;
   if(typeof o.ukSeen==="boolean") r.ukSeen=o.ukSeen;
   if(typeof o.ukSeen2==="boolean") r.ukSeen2=o.ukSeen2;
@@ -1353,6 +1362,7 @@ function buildSession(mode){
     fromMiss(3);
     dueWords().slice(0,3).forEach(w=>push(wordTask(w)));
     for(let k=0;k<3;k++) push(GEN.unit());
+    for(let k=0;k<2;k++) push(GEN.fraza());
     const pool=[];Object.entries(lvl().pool).forEach(([m,w])=>{ if(m==="listen"&&!canSpeak())return; for(let k=0;k<w;k++)pool.push(m); });
     let g=0;while(list.length<10&&g++<300)push(GEN[pick(pool)]());
   } else if(mode==="pictures"){ for(let k=0;k<8;k++)push(GEN.pictures()); }
@@ -1954,7 +1964,7 @@ klocki(area){
       asked.add(w.pl); const t=wordTask(w,pick(["recog","recall"]));
       return {...t,label:ui("Слово","Słowo"),grade:ok=>{ srsGrade(w.pl,ok,t); record(null,ok); }};
     }
-    const kinds=[...new Set(["translate","friends","unitc",...Object.keys(lvl().pool)])].filter(k=>DATA[k]&&GEN[k]&&k!=="listen"&&k!=="build"&&k!=="unit");
+    const kinds=[...new Set(["translate","friends","unitc","frazac","frazac",...Object.keys(lvl().pool)])].filter(k=>DATA[k]&&GEN[k]&&k!=="listen"&&k!=="build"&&k!=="unit");
     for(let g=0;g<20;g++){ const k=pick(kinds), i=Math.floor(Math.random()*DATA[k].length); if(asked.has(k+i)) continue; asked.add(k+i);
       const t=GEN[k](i); return {...t,label:MODE_NAME[k],hint:t.hint||L().hints[k],grade:ok=>record(t.id,ok)}; }
     const w=pick([...WMAP.values()]); const t=wordTask(w,"recog"); return {...t,label:ui("Слово","Słowo"),grade:ok=>{ srsGrade(w.pl,ok,t); record(null,ok); }};
@@ -2685,6 +2695,7 @@ function nextItem(){
   if(mode==="dyktando") return dictItem();
   const due=dueWords().filter(w=>!recent(w.pl));
   if(mode==="trening"&&session.length%3===1) return GEN.unit();
+  if(mode==="trening"&&session.length%4===2) return GEN.fraza();
   if(mode==="trening"&&session.length%7===6) return trTask();
   if(mode==="trening"&&session.length%5===4){
     const m=S.miss.length&&Math.random()<.5?S.miss[Math.floor(Math.random()*S.miss.length)]:null;
@@ -2890,7 +2901,7 @@ function openStory(i){
 
 /* ───── кнопки «Учёбы» ───── */
 function renderLearnExtras(){
-  const us=$("#unitsSub"); if(us&&typeof UNITS!=="undefined"){ const d=Object.values(S.units||{}).reduce((a,b)=>a+b,0); us.textContent=ui("Как строить предложения: правило → практика · ★ ","Jak budować zdania: reguła → praktyka · ★ ")+d+"/"+UNITS.length*3; }
+  const us=$("#unitsSub"); if(us&&typeof UNITS!=="undefined"){ const d=Object.values(S.units||{}).reduce((a,b)=>a+b,0); us.textContent=ui("Грамматика · ситуации · "+(typeof FR!=="undefined"?FR.length:0)+" фраз из жизни · ★ ","Gramatyka · sytuacje · zwroty · ★ ")+d+"/"+UNITS.length*3; }
   checkBadges();
   const n=dueWords().length;
   $("#treningSub").textContent=L().treningSub(n);
@@ -3966,10 +3977,10 @@ UQ.filter(x=>x.q[0]==="order"&&unchunk(x.q[2].split("|")[0]).split(" ").length<=
 function renderUQ(box,q,done,opts={}){
   const [type,ru]=q; let answered=false;
   const fin=(ok,html)=>{ if(answered) return; answered=true; haptic(ok?"success":"error");
-    const expl=type==="fix"?q[4]:q[3];
+    const expl=type==="fix"?q[4]:(type==="cloze"||type==="meaning")?"":q[3];
     const fb=el("div","fb glass "+(ok?"ok":"no"),"<h3>"+(ok?pick(PRAISE):pick(OOPS))+"</h3>"+(html||"")+(expl&&S.explain!==false?'<p class="note">💡 '+esc(expl)+'</p>':""));
     box.append(fb); fb.scrollIntoView({block:"nearest",behavior:"smooth"}); done(ok); };
-  if(type!=="trans") box.append(el("p","eyebrow",esc({order:ui("Собери фразу","Ułóż zdanie"),forms:ui("Поставь слова в нужную форму","Wstaw słowa we właściwej formie"),choose:ui("Как сказать правильно?","Jak powiedzieć poprawnie?"),fix:ui("Найди ошибку и нажми на неё","Znajdź błąd i stuknij w niego"),trans:ui("Переведи на польский","Przetłumacz na polski")}[type])));
+  if(type!=="trans") box.append(el("p","eyebrow",esc({order:ui("Собери фразу","Ułóż zdanie"),forms:ui("Поставь слова в нужную форму","Wstaw słowa we właściwej formie"),choose:ui("Как сказать правильно?","Jak powiedzieć poprawnie?"),meaning:ui("Что значит эта фраза?","Co znaczy to zdanie?"),cloze:ui("Вставь пропущенное слово","Wstaw brakujące słowo"),fix:ui("Найди ошибку и нажми на неё","Znajdź błąd i stuknij w niego"),trans:ui("Переведи на польский","Przetłumacz na polski")}[type])));
   if(type!=="trans") box.append(el("p","q big",esc(ru)));
   const lvn=LV_N[S.level]||3;
   if(type==="order"){
@@ -4023,6 +4034,21 @@ function renderUQ(box,q,done,opts={}){
       sent.append(b, document.createTextNode(" ")); });
     box.append(sent);
   }
+  if(type==="meaning"){
+    const v=q[2].split("|"), wrap=el("div","opts"); const sp=el("button","say","🔊 "+esc(L().hear)); sp.onclick=()=>speak(ru,true); box.append(sp); setTimeout(()=>speak(ru),250);
+    shuffle(v).forEach(o=>{ const b=el("button","opt",esc(o)); b.onclick=()=>{ if(answered) return; const ok=o===v[0];
+      [...wrap.children].forEach(x=>{ x.disabled=true; if(x.textContent===v[0]) x.classList.add("right"); else if(x===b) x.classList.add("wrong"); else x.classList.add("dim"); }); fin(ok,""); }; wrap.append(b); });
+    box.append(wrap);
+  }
+  if(type==="cloze"){
+    const pl=q[2], target=q[3]; const re=new RegExp("(^|[^\\p{L}])("+reEsc(target)+")(?=$|[^\\p{L}])","u"); const m=pl.match(re); const at=m?m.index+m[1].length:0;
+    const sent=el("p","fsent",esc(pl.slice(0,at))+'<span class="gap">?</span>'+esc(pl.slice(at+target.length)));
+    const v=q[4].split("|"), wrap=el("div","fopts");
+    shuffle(v).forEach(o=>{ const b=el("button","chip",esc(o)); b.onclick=()=>{ if(answered) return; const ok=o===target;
+      [...wrap.children].forEach(x=>{ x.disabled=true; if(x.textContent===target) x.classList.add("rightc"); });
+      sent.innerHTML=esc(pl.slice(0,at))+'<b class="'+(ok?"okw":"badw")+'">'+esc(target)+'</b>'+esc(pl.slice(at+target.length)); speak(pl,true); fin(ok,""); }; wrap.append(b); });
+    box.append(sent,wrap);
+  }
   if(type==="trans"){
     const v=q[2].split("|"); trUI(box,{ru,pl:v[0],alts:v.slice(1)},ok=>done(ok,true),{nextLabel:opts.nextLabel});
   }
@@ -4060,10 +4086,12 @@ function renderUnitList(){
   const area=gArea(); area.innerHTML=""; gMain(null);
   const lv=LV_N[S.level]||3, done=Object.values(S.units||{}).reduce((a,b)=>a+b,0);
   gInfo("★ "+done+"/"+UNITS.length*3);
-  const tab=S.unitTab==="life"?"life":"gram";
+  const tab=["life","fr"].includes(S.unitTab)?S.unitTab:"gram";
   const seg=el("div","seg glass");
-  [["gram","🧩 "+ui("Грамматика","Gramatyka")],["life","🗣️ "+ui("Ситуации из жизни","Sytuacje z życia")]].forEach(([k,lab])=>{ const b=el("button","",esc(lab)); b.setAttribute("aria-selected",tab===k); b.onclick=()=>{ S.unitTab=k; save(); haptic("tap"); renderUnitList(); }; seg.append(b); });
+  seg.classList.add("seg3");
+  [["gram","🧩 "+ui("Грамматика","Gramatyka")],["life","🗣️ "+ui("Ситуации","Sytuacje")],["fr","📖 "+ui("Фразы","Zwroty")]].forEach(([k,lab])=>{ const b=el("button","",esc(lab)); b.setAttribute("aria-selected",tab===k); b.onclick=()=>{ S.unitTab=k; save(); haptic("tap"); renderUnitList(); }; seg.append(b); });
   area.append(seg);
+  if(tab==="fr"){ renderFrazyList(area); return; }
   area.append(el("p","hint",esc(tab==="life"
     ?ui("Длинные фразы, которые реально нужны: врач, работа, проезд, документы, квартира. Сначала — разговорник, потом собираешь фразы кусками и переводишь сама.","Długie zdania z życia: lekarz, praca, transport, urząd, mieszkanie. Najpierw rozmówki, potem praktyka.")
     :ui("Как строить предложения: короткое правило с примерами, потом практика — собрать фразу, поставить слова в нужную форму, найти ошибку, перевести. Сначала — уроки твоего уровня.","Jak budować zdania: krótka reguła z przykładami, potem praktyka."))));
@@ -4100,6 +4128,738 @@ function finishUnit(i,ok,n){
   area.append(el("p","hint center",esc(st===3?ui("Отлично! Эта конструкция у тебя в кармане.","Świetnie! Ta konstrukcja jest twoja."):ui("Ошибки уже в повторении — они вернутся в Trening ∞. Можно пройти урок ещё раз.","Błędy trafiły do powtórek. Możesz przejść lekcję jeszcze raz."))));
   const row=el("div","row"); const again=el("button","ghost glass",esc(ui("Ещё раз","Jeszcze raz"))); again.onclick=()=>runUnit(i);
   const list=el("button","primary glint",esc(ui("К урокам","Do lekcji"))); list.onclick=renderUnitList; row.append(again,list); area.append(row);
+}
+
+
+/* ═════════════ ФРАЗЫ НА ВСЕ СЛУЧАИ: уровень | по-русски | по-польски ═════════════ */
+const FRAZY = [];
+const FT=(ic,t,pl,raw)=>FRAZY.push({ic,t,pl,items:raw.trim().split("\n").map(l=>{ const p=l.split("|"); return {lv:+p[0],ru:p[1].trim(),pl:p[2].trim()}; })});
+
+FT("👋","Знакомство и о себе","Poznajmy się",`
+1|Меня зовут Ольга, я из Украины.|Mam na imię Olga, jestem z Ukrainy.
+1|Очень приятно познакомиться.|Bardzo miło mi cię poznać.
+1|Сколько тебе лет?|Ile masz lat?
+1|Я живу в Польше уже три года.|Mieszkam w Polsce już od trzech lat.
+1|Чем ты занимаешься?|Czym się zajmujesz?
+1|Я работаю в магазине, а по вечерам учу польский.|Pracuję w sklepie, a wieczorami uczę się polskiego.
+2|Откуда ты так хорошо знаешь польский?|Skąd tak dobrze znasz polski?
+2|Я ещё делаю ошибки, но стараюсь говорить как можно больше.|Jeszcze robię błędy, ale staram się mówić jak najwięcej.
+2|У меня двое детей и собака.|Mam dwoje dzieci i psa.
+2|Мы переехали сюда из-за работы мужа.|Przeprowadziliśmy się tutaj ze względu na pracę męża.
+2|Можно на «ты»?|Możemy mówić sobie po imieniu?
+3|Расскажи немного о себе.|Opowiedz mi trochę o sobie.
+3|По образованию я экономист, но сейчас работаю в другой сфере.|Z wykształcenia jestem ekonomistką, ale teraz pracuję w innej branży.
+3|В свободное время люблю гулять и читать детективы.|W wolnym czasie lubię spacerować i czytać kryminały.
+3|Мне нравится здесь жить, хотя иногда скучаю по дому.|Lubię tu mieszkać, chociaż czasem tęsknię za domem.
+3|Мы, кажется, где-то уже встречались.|Chyba już się gdzieś spotkaliśmy.
+4|Сначала было трудно, но со временем я привыкла к здешней жизни.|Na początku było trudno, ale z czasem przyzwyczaiłam się do tutejszego życia.
+4|Я по натуре скорее интроверт, но с людьми лажу легко.|Z natury jestem raczej introwertyczką, ale łatwo dogaduję się z ludźmi.
+4|Если честно, я никогда не думала, что останусь здесь надолго.|Szczerze mówiąc, nigdy nie myślałam, że zostanę tu na dłużej.
+5|Переезд за границу научил меня не принимать ничего как должное.|Przeprowadzka za granicę nauczyła mnie, żeby niczego nie brać za pewnik.`);
+
+FT("👨‍👩‍👧","Семья","Rodzina",`
+1|Это мой муж, а это наша дочь.|To jest mój mąż, a to nasza córka.
+1|У меня есть старший брат и младшая сестра.|Mam starszego brata i młodszą siostrę.
+1|Мои родители живут в другом городе.|Moi rodzice mieszkają w innym mieście.
+1|Бабушка печёт самые вкусные пироги.|Babcia piecze najlepsze ciasta.
+2|Мы с сестрой созваниваемся почти каждый день.|Z siostrą dzwonimy do siebie prawie codziennie.
+2|На выходные к нам приезжают внуки.|Na weekend przyjeżdżają do nas wnuki.
+2|Мой сын похож на отца, а дочь — на меня.|Mój syn jest podobny do ojca, a córka do mnie.
+2|Тётя Галя — сестра моей мамы.|Ciocia Gala to siostra mojej mamy.
+2|Вся семья собирается у нас на Рождество.|Cała rodzina zbiera się u nas na święta.
+3|Мы с мужем женаты уже двадцать лет.|Jesteśmy z mężem małżeństwem już od dwudziestu lat.
+3|Дети уже взрослые и живут отдельно.|Dzieci są już dorosłe i mieszkają osobno.
+3|Свекровь иногда помогает нам с детьми.|Teściowa czasem pomaga nam przy dzieciach.
+3|Мой племянник в этом году идёт в первый класс.|Mój bratanek w tym roku idzie do pierwszej klasy.
+3|Мы очень дружная семья, хотя бывает всякое.|Jesteśmy bardzo zżytą rodziną, chociaż różnie bywa.
+4|С возрастом я всё больше похожа на свою маму.|Z wiekiem coraz bardziej przypominam swoją mamę.
+4|Брат с женой ждут второго ребёнка.|Brat z żoną spodziewają się drugiego dziecka.
+4|Мы стараемся проводить вместе хотя бы воскресенья.|Staramy się spędzać razem przynajmniej niedziele.
+4|После развода родителей я долго жила с бабушкой.|Po rozwodzie rodziców długo mieszkałam z babcią.
+5|В нашей семье всегда было принято говорить правду, даже неприятную.|W naszej rodzinie zawsze przyjęte było mówić prawdę, nawet niewygodną.`);
+
+FT("🧹","Дом и быт","Dom i obowiązki",`
+1|Я убираю квартиру по субботам.|Sprzątam mieszkanie w soboty.
+1|Кто сегодня моет посуду?|Kto dziś zmywa naczynia?
+1|Вынеси, пожалуйста, мусор.|Wynieś, proszę, śmieci.
+1|Ужин будет готов через полчаса.|Kolacja będzie gotowa za pół godziny.
+2|Нужно постирать бельё и развесить его на балконе.|Trzeba zrobić pranie i rozwiesić je na balkonie.
+2|Не забудь выключить свет, когда будешь выходить.|Nie zapomnij zgasić światła, kiedy będziesz wychodzić.
+2|В холодильнике закончилось молоко.|W lodówce skończyło się mleko.
+2|Можешь пропылесосить в гостиной?|Możesz poodkurzać w salonie?
+2|Я поставлю чайник, хочешь чаю?|Nastawię czajnik, chcesz herbaty?
+3|Мусор у нас сортируют: пластик, бумага, стекло и био.|U nas segreguje się śmieci: plastik, papier, szkło i bio.
+3|Посудомойка уже закончила, можно вынимать посуду.|Zmywarka już skończyła, można wyjmować naczynia.
+3|Надо разморозить мясо на завтрашний обед.|Trzeba rozmrozić mięso na jutrzejszy obiad.
+3|Давай распределим обязанности, чтобы никто не был недоволен.|Podzielmy się obowiązkami, żeby nikt nie był niezadowolony.
+3|Окна давно не мыли, всё в разводах.|Okna dawno nie były myte, wszystko jest w smugach.
+4|Вечно всё на мне: готовка, уборка и ещё работа.|Wiecznie wszystko jest na mojej głowie: gotowanie, sprzątanie i jeszcze praca.
+4|Если каждый уберёт за собой, дома будет порядок.|Jeśli każdy posprząta po sobie, w domu będzie porządek.
+4|Генеральную уборку делаем обычно перед праздниками.|Generalne porządki robimy zwykle przed świętami.
+4|Стиралка опять пищит — видимо, забился фильтр.|Pralka znowu piszczy — chyba zatkał się filtr.
+5|Я не выношу беспорядка, поэтому убираю почти машинально.|Nie znoszę bałaganu, więc sprzątam niemal odruchowo.`);
+
+FT("🛒","Магазин продуктов","Zakupy spożywcze",`
+1|Где здесь хлеб?|Gdzie tu jest chleb?
+1|Дайте, пожалуйста, полкило сыра.|Poproszę pół kilo sera.
+1|Сколько стоят эти помидоры?|Ile kosztują te pomidory?
+1|Можно заплатить картой?|Można zapłacić kartą?
+2|Мне нужен пакет.|Poproszę reklamówkę.
+2|Нарежьте, пожалуйста, ветчину тонкими ломтиками.|Proszę pokroić szynkę w cienkie plasterki.
+2|Это свежее? Когда привезли?|Czy to jest świeże? Kiedy przyszła dostawa?
+2|У вас есть безлактозное молоко?|Czy macie mleko bez laktozy?
+2|Я забыла кошелёк, можно отложить покупки на пять минут?|Zapomniałam portfela, czy można odłożyć zakupy na pięć minut?
+3|На кассе самообслуживания у меня не проходит товар.|Na kasie samoobsługowej nie przechodzi mi produkt.
+3|Сегодня акция: второй товар за полцены.|Dziś jest promocja: drugi produkt za pół ceny.
+3|Цена на полке другая, чем на кассе.|Cena na półce jest inna niż na kasie.
+3|Возьми ещё яиц и масла, если будут скидки.|Weź jeszcze jajka i masło, jeśli będą przecenione.
+3|Мне без сдачи не получится, у меня только сто злотых.|Nie mam drobnych, mam tylko stówę.
+4|Я составляю список заранее, чтобы не покупать лишнего.|Robię listę zakupów wcześniej, żeby nie kupować niepotrzebnych rzeczy.
+4|В этом магазине овощи всегда вялые, лучше идти на рынок.|W tym sklepie warzywa są zawsze zwiędnięte, lepiej iść na targ.
+4|Срок годности истёк вчера, уберите это с полки.|Termin ważności minął wczoraj, proszę to zdjąć z półki.
+4|Цены за год выросли просто невероятно.|Ceny przez rok wzrosły po prostu niesamowicie.
+5|Я стараюсь покупать местные продукты, даже если они дороже.|Staram się kupować lokalne produkty, nawet jeśli są droższe.`);
+
+FT("👗","Одежда и примерка","Ubrania i przymierzalnia",`
+1|Где примерочная?|Gdzie jest przymierzalnia?
+1|Есть ли это платье в размере М?|Czy jest ta sukienka w rozmiarze M?
+1|Эти брюки слишком длинные.|Te spodnie są za długie.
+2|Можно примерить эту куртку?|Czy mogę przymierzyć tę kurtkę?
+2|Есть ли другой цвет?|Czy jest inny kolor?
+2|Эта блузка мне мала в плечах.|Ta bluzka jest za ciasna w ramionach.
+2|Мне нужны удобные ботинки на зиму.|Potrzebuję wygodnych butów na zimę.
+2|Как тебе этот свитер? Мне идёт?|Jak ci się podoba ten sweter? Dobrze w nim wyglądam?
+3|Можно подшить брюки здесь, в магазине?|Czy można skrócić spodnie tutaj, w sklepie?
+3|Эта ткань мнётся, её трудно гладить.|Ten materiał się gniecie, trudno go prasować.
+3|Я обычно ношу тридцать восьмой размер, но здесь маломерки.|Zwykle noszę rozmiar trzydzieści osiem, ale tu rozmiary są zaniżone.
+3|Мне нужно что-то нарядное на свадьбу.|Potrzebuję czegoś eleganckiego na wesele.
+3|После стирки свитер сел на два размера.|Po praniu sweter skurczył się o dwa rozmiary.
+4|Эта рубашка сидит идеально, беру.|Ta koszula leży idealnie, biorę.
+4|Я не гонюсь за модой, главное, чтобы было удобно.|Nie gonię za modą, najważniejsze, żeby było wygodnie.
+4|На распродаже я купила пальто вдвое дешевле.|Na wyprzedaży kupiłam płaszcz o połowę taniej.
+4|Подскажите, это стирается в машинке или только руками?|Czy można to prać w pralce, czy tylko ręcznie?
+5|Я давно поняла, что лучше купить одну хорошую вещь, чем пять дешёвых.|Dawno zrozumiałam, że lepiej kupić jedną porządną rzecz niż pięć tanich.`);
+
+FT("☕","Кафе и ресторан","Kawiarnia i restauracja",`
+1|Столик на двоих, пожалуйста.|Poproszę stolik dla dwóch osób.
+1|Можно меню?|Czy mogę prosić o menu?
+1|Мне кофе с молоком, пожалуйста.|Poproszę kawę z mlekiem.
+1|Счёт, пожалуйста.|Poproszę rachunek.
+2|Что вы посоветуете из горячих блюд?|Co pan poleca z dań głównych?
+2|Я не ем мяса, есть ли что-то вегетарианское?|Nie jem mięsa, czy jest coś wegetariańskiego?
+2|Можно заказать навынос?|Czy można zamówić na wynos?
+2|Суп холодный, можно подогреть?|Zupa jest zimna, czy można ją podgrzać?
+2|Мы заплатим отдельно.|Zapłacimy osobno.
+3|У меня аллергия на орехи — в этом блюде они есть?|Mam alergię na orzechy — czy są w tym daniu?
+3|Я хотела бы забронировать столик на субботу на семь вечера.|Chciałabym zarezerwować stolik na sobotę na dziewiętnastą.
+3|Мы ждём заказ уже сорок минут.|Czekamy na zamówienie już czterdzieści minut.
+3|Это не то, что я заказывала.|To nie jest to, co zamawiałam.
+3|Можно поменять картошку фри на салат?|Czy można zamienić frytki na sałatkę?
+4|Чаевые здесь включены в счёт или оставляют отдельно?|Czy napiwek jest wliczony w rachunek, czy zostawia się go osobno?
+4|Было очень вкусно, передайте благодарность повару.|Było bardzo smaczne, proszę przekazać podziękowania kucharzowi.
+4|Давай зайдём куда-нибудь перекусить, я умираю с голоду.|Wpadnijmy gdzieś coś przekąsić, umieram z głodu.
+4|Здесь, конечно, дороговато, но обслуживание на высшем уровне.|Jest tu co prawda drogo, ale obsługa jest na najwyższym poziomie.
+5|Сегодня я угощаю — и даже не думай спорить.|Dziś ja stawiam — i nawet nie próbuj się kłócić.`);
+
+FT("🌦️","Погода","Pogoda",`
+1|Сегодня холодно и идёт дождь.|Dzisiaj jest zimno i pada deszcz.
+1|Какая завтра будет погода?|Jaka jutro będzie pogoda?
+1|На улице очень жарко.|Na dworze jest bardzo gorąco.
+2|Возьми зонтик, обещали ливень.|Weź parasol, zapowiadali ulewę.
+2|Ночью был мороз, на дорогах гололёд.|W nocy był mróz, na drogach jest ślisko.
+2|Наконец-то выглянуло солнце.|Wreszcie wyszło słońce.
+2|Дует сильный ветер, лучше остаться дома.|Wieje silny wiatr, lepiej zostać w domu.
+3|По прогнозу всю неделю будет пасмурно.|Według prognozy cały tydzień będzie pochmurno.
+3|Такой жары не было уже много лет.|Takiego upału nie było od wielu lat.
+3|Снег выпал за ночь, и всё стало белым.|Śnieg spadł w nocy i wszystko zrobiło się białe.
+3|Похоже, будет гроза — небо совсем почернело.|Chyba będzie burza — niebo zrobiło się całkiem czarne.
+4|Погода в Польше очень переменчивая: утром солнце, вечером дождь.|Pogoda w Polsce jest bardzo zmienna: rano słońce, wieczorem deszcz.
+4|Я плохо переношу перепады давления, сразу болит голова.|Źle znoszę zmiany ciśnienia, od razu boli mnie głowa.
+4|В такую погоду хочется только лежать под одеялом.|Przy takiej pogodzie chce się tylko leżeć pod kocem.
+4|Объявили оранжевое предупреждение из-за сильного ветра.|Ogłoszono pomarańczowe ostrzeżenie przed silnym wiatrem.
+5|Зима в этом году выдалась на удивление мягкой.|Zima w tym roku okazała się zaskakująco łagodna.`);
+
+FT("📅","Время, даты и планы","Czas i plany",`
+1|Который час?|Która jest godzina?
+1|Встретимся в пятницу в шесть.|Spotkajmy się w piątek o szóstej.
+1|Какое сегодня число?|Którego jest dzisiaj?
+2|Я буду дома после восьми вечера.|Będę w domu po dwudziestej.
+2|У тебя есть время в эти выходные?|Masz czas w ten weekend?
+2|Давай перенесём встречу на следующую неделю.|Przełóżmy spotkanie na przyszły tydzień.
+2|Я опоздаю минут на десять.|Spóźnię się jakieś dziesięć minut.
+2|Мой день рождения пятнадцатого мая.|Moje urodziny są piętnastego maja.
+3|Я освобожусь не раньше пяти.|Nie będę wolna wcześniej niż o siedemnastej.
+3|Давай договоримся точнее, когда будет понятно с работой.|Umówmy się dokładniej, kiedy będzie wiadomo, jak z pracą.
+3|В последнее время у меня совсем нет времени.|Ostatnio w ogóle nie mam czasu.
+3|Отпуск у меня с первого по пятнадцатое августа.|Urlop mam od pierwszego do piętnastego sierpnia.
+4|Я планирую всё заранее, иначе ничего не успеваю.|Planuję wszystko z wyprzedzeniem, inaczej nic nie zdążę.
+4|Если ничего не изменится, приеду в четверг к обеду.|Jeśli nic się nie zmieni, przyjadę w czwartek na obiad.
+4|Время летит — не успеешь оглянуться, а уже декабрь.|Czas leci — człowiek się nie obejrzy, a już grudzień.
+5|Я привыкла жить по расписанию, спонтанность меня немного пугает.|Przyzwyczaiłam się żyć według planu, spontaniczność trochę mnie przeraża.`);
+
+FT("🎨","Хобби и выходные","Hobby i weekend",`
+1|Что ты делаешь в выходные?|Co robisz w weekend?
+1|Я люблю готовить и читать.|Lubię gotować i czytać.
+1|В субботу мы идём в кино.|W sobotę idziemy do kina.
+2|По воскресеньям мы ездим за город.|W niedziele jeździmy za miasto.
+2|Я уже давно хочу записаться на танцы.|Już od dawna chcę zapisać się na taniec.
+2|Хочешь пойти с нами на концерт?|Chcesz iść z nami na koncert?
+2|Вчера мы весь день гуляли по старому городу.|Wczoraj cały dzień spacerowaliśmy po starym mieście.
+3|Я увлекаюсь фотографией, особенно пейзажами.|Interesuję się fotografią, zwłaszcza krajobrazową.
+3|В выходные я наконец высплюсь и ничего не буду делать.|W weekend wreszcie się wyśpię i nic nie będę robić.
+3|Мы с подругами раз в месяц ходим в театр.|Raz w miesiącu chodzimy z przyjaciółkami do teatru.
+3|Он часами может сидеть с удочкой на озере.|Potrafi godzinami siedzieć z wędką nad jeziorem.
+4|Работа в саду меня успокаивает лучше любой медитации.|Praca w ogrodzie uspokaja mnie lepiej niż jakakolwiek medytacja.
+4|Раньше я много вязала, а теперь на это нет времени.|Kiedyś dużo robiłam na drutach, a teraz nie mam na to czasu.
+4|Мы спонтанно решили съездить в горы на пару дней.|Spontanicznie postanowiliśmy pojechać w góry na kilka dni.
+5|Хобби для меня — способ хоть ненадолго отключиться от повседневной суеты.|Hobby to dla mnie sposób, żeby choć na chwilę oderwać się od codziennej bieganiny.`);
+
+FT("🤒","Самочувствие и здоровье","Samopoczucie i zdrowie",`
+1|Я плохо себя чувствую.|Źle się czuję.
+1|У меня болит голова.|Boli mnie głowa.
+1|Мне нужно к врачу.|Muszę iść do lekarza.
+2|У меня температура тридцать восемь.|Mam trzydzieści osiem stopni gorączki.
+2|Я всю ночь не спала из-за кашля.|Całą noc nie spałam przez kaszel.
+2|Кажется, я простудилась.|Chyba się przeziębiłam.
+2|Выздоравливай поскорее!|Szybkiego powrotu do zdrowia!
+3|У меня аллергия на пыльцу, весной я всё время чихаю.|Mam alergię na pyłki, wiosną ciągle kicham.
+3|Я подвернула ногу, и теперь мне больно наступать.|Skręciłam nogę i teraz boli mnie, kiedy na nią staję.
+3|Мне нужно сдать анализ крови натощак.|Muszę zrobić badanie krwi na czczo.
+3|Врач выписал мне антибиотик на семь дней.|Lekarz przepisał mi antybiotyk na siedem dni.
+4|У меня давление скачет, особенно по утрам.|Skacze mi ciśnienie, zwłaszcza rano.
+4|Последнее время я быстро устаю и плохо сплю.|Ostatnio szybko się męczę i źle sypiam.
+4|Мне сделали прививку от гриппа.|Zaszczepiłam się przeciwko grypie.
+4|Боль отдаёт в спину и усиливается вечером.|Ból promieniuje do pleców i nasila się wieczorem.
+5|Я стараюсь не запускать здоровье и раз в год прохожу обследование.|Staram się nie zaniedbywać zdrowia i raz w roku robię badania kontrolne.`);
+
+FT("🏢","Рабочий день","Dzień w pracy",`
+1|Я начинаю работу в восемь.|Zaczynam pracę o ósmej.
+1|У меня сегодня много работы.|Mam dzisiaj dużo pracy.
+1|Где кухня для сотрудников?|Gdzie jest kuchnia dla pracowników?
+2|У меня перерыв на обед с двенадцати до половины первого.|Mam przerwę na obiad od dwunastej do wpół do pierwszej.
+2|Сегодня я работаю из дома.|Dzisiaj pracuję z domu.
+2|Кто отвечает за этот проект?|Kto odpowiada za ten projekt?
+2|Мне нужно уйти пораньше, у меня визит к врачу.|Muszę wyjść wcześniej, mam wizytę u lekarza.
+3|Компьютер завис, и я потеряла половину файла.|Komputer się zawiesił i straciłam połowę pliku.
+3|Можно я сегодня останусь на час дольше и завтра уйду раньше?|Czy mogę dziś zostać godzinę dłużej, a jutro wyjść wcześniej?
+3|В конце месяца у нас всегда завал.|Pod koniec miesiąca zawsze mamy urwanie głowy.
+3|Новенькой нужно всё показать и объяснить.|Nowej koleżance trzeba wszystko pokazać i wyjaśnić.
+3|Принтер опять зажевал бумагу.|Drukarka znowu zacięła papier.
+4|Я не успеваю, можно продлить срок до понедельника?|Nie wyrabiam się, czy można przedłużyć termin do poniedziałku?
+4|Мне кажется, нас слишком перегружают, нужно поговорить с руководством.|Wydaje mi się, że jesteśmy zbyt obciążeni, trzeba porozmawiać z kierownictwem.
+4|После повышения у меня стало больше ответственности.|Po awansie mam więcej odpowiedzialności.
+4|Я ухожу в отпуск, все вопросы, пожалуйста, к Анне.|Idę na urlop, wszystkie sprawy proszę kierować do Anny.
+5|Я ценю гибкий график больше, чем высокую зарплату.|Cenię elastyczny czas pracy bardziej niż wysoką pensję.
+5|Увольняться в разгар сезона было бы с моей стороны нечестно.|Odejście z pracy w środku sezonu byłoby z mojej strony nie w porządku.`);
+
+FT("📧","Деловые письма и встречи","Maile i spotkania",`
+2|Добрый день, пишу по поводу вчерашней встречи.|Dzień dobry, piszę w sprawie wczorajszego spotkania.
+2|В приложении отправляю документы.|W załączniku przesyłam dokumenty.
+2|Спасибо за быстрый ответ.|Dziękuję za szybką odpowiedź.
+3|Прошу подтвердить получение письма.|Proszę o potwierdzenie otrzymania wiadomości.
+3|Предлагаю встретиться во вторник в десять, подходит ли вам это время?|Proponuję spotkanie we wtorek o dziesiątej, czy ten termin Panu odpowiada?
+3|К сожалению, в четверг я не смогу, предлагаю другой срок.|Niestety w czwartek nie dam rady, proponuję inny termin.
+3|Возвращаясь к нашему разговору, высылаю обещанный отчёт.|Nawiązując do naszej rozmowy, przesyłam obiecany raport.
+3|Я в отпуске до двадцатого, по срочным вопросам пишите Петру.|Jestem na urlopie do dwudziestego, w pilnych sprawach proszę pisać do Piotra.
+4|Буду благодарна за ответ до конца недели.|Będę wdzięczna za odpowiedź do końca tygodnia.
+4|Прошу прощения за задержку с ответом.|Przepraszam za opóźnienie w odpowiedzi.
+4|Подведём итоги: каждый готовит свою часть к пятнице.|Podsumowując: każdy przygotowuje swoją część do piątku.
+4|Давайте не будем отклоняться от темы, у нас мало времени.|Nie odbiegajmy od tematu, mamy mało czasu.
+4|Можно ли перенести совещание на онлайн?|Czy można przenieść zebranie do trybu online?
+4|Я добавлю этот пункт в протокол встречи.|Dodam ten punkt do notatki ze spotkania.
+5|Пользуясь случаем, хочу поблагодарить всю команду за проделанную работу.|Korzystając z okazji, chciałabym podziękować całemu zespołowi za wykonaną pracę.
+5|В случае вопросов остаюсь в вашем распоряжении.|W razie pytań pozostaję do dyspozycji.
+5|С уважением, Ольга Коваленко.|Z wyrazami szacunku, Olga Kowalenko.`);
+
+FT("💳","Деньги и покупки онлайн","Pieniądze i zakupy w sieci",`
+1|Сколько это стоит?|Ile to kosztuje?
+1|У меня нет наличных.|Nie mam gotówki.
+2|Где ближайший банкомат?|Gdzie jest najbliższy bankomat?
+2|Я заказала платье в интернете, оно придёт в пятницу.|Zamówiłam sukienkę przez internet, przyjdzie w piątek.
+2|Посылка ждёт меня в посылкомате.|Paczka czeka na mnie w paczkomacie.
+2|Можно оплатить через BLIK?|Można zapłacić BLIKIEM?
+3|Мне пришла зарплата, наконец можно заплатить по счетам.|Przyszła mi wypłata, wreszcie można zapłacić rachunki.
+3|Я откладываю каждый месяц немного денег на отпуск.|Co miesiąc odkładam trochę pieniędzy na wakacje.
+3|С карты списали деньги два раза за одну покупку.|Z karty pobrano pieniądze dwa razy za jeden zakup.
+3|Курьер не застал меня дома и оставил посылку у соседа.|Kurier nie zastał mnie w domu i zostawił paczkę u sąsiada.
+3|Я перевела тебе деньги за билеты.|Przelałam ci pieniądze za bilety.
+4|Мы взяли ипотеку на тридцать лет.|Wzięliśmy kredyt hipoteczny na trzydzieści lat.
+4|Этот магазин выглядит подозрительно, лучше не платить заранее.|Ten sklep wygląda podejrzanie, lepiej nie płacić z góry.
+4|Я пытаюсь вести бюджет, но деньги всё равно куда-то утекают.|Próbuję prowadzić budżet, ale pieniądze i tak gdzieś uciekają.
+4|Возврат денег займёт до четырнадцати рабочих дней.|Zwrot pieniędzy potrwa do czternastu dni roboczych.
+5|При нынешней инфляции копить на счёте просто невыгодно.|Przy obecnej inflacji oszczędzanie na koncie po prostu się nie opłaca.`);
+
+FT("🚗","Машина, такси, дорога","Samochód i taksówka",`
+1|Мне нужно такси до аэропорта.|Potrzebuję taksówki na lotnisko.
+1|Остановите здесь, пожалуйста.|Proszę się tu zatrzymać.
+2|Сколько будет стоить поездка до центра?|Ile będzie kosztował kurs do centrum?
+2|Пристегни ремень безопасности.|Zapnij pas bezpieczeństwa.
+2|Где здесь можно припарковаться?|Gdzie tu można zaparkować?
+2|Мне нужно заправиться, бензин почти закончился.|Muszę zatankować, prawie skończyła się benzyna.
+3|Полный бак дизеля, пожалуйста, и проверьте давление в шинах.|Poproszę do pełna olejem napędowym i proszę sprawdzić ciśnienie w oponach.
+3|На объездной огромная пробка, поедем другой дорогой.|Na obwodnicy jest ogromny korek, pojedziemy inną drogą.
+3|Меня оштрафовали за превышение скорости.|Dostałam mandat za przekroczenie prędkości.
+3|Машина не заводится, наверное, сел аккумулятор.|Samochód nie odpala, pewnie rozładował się akumulator.
+3|Через сто метров поверните направо.|Za sto metrów proszę skręcić w prawo.
+4|Мне нужно поменять летнюю резину на зимнюю.|Muszę zmienić opony letnie na zimowe.
+4|Кто-то поцарапал мне машину на парковке и уехал.|Ktoś zarysował mi samochód na parkingu i odjechał.
+4|Я попала в небольшую аварию, никто не пострадал.|Miałam drobną stłuczkę, nikt nie ucierpiał.
+4|Нужно пройти техосмотр до конца месяца.|Trzeba zrobić przegląd techniczny do końca miesiąca.
+5|Права у меня есть, но за руль в Варшаве я сажусь неохотно.|Prawo jazdy mam, ale za kierownicę w Warszawie siadam niechętnie.`);
+
+FT("🧳","Путешествия и отель","Podróże i hotel",`
+1|У меня забронирован номер на имя Коваленко.|Mam zarezerwowany pokój na nazwisko Kowalenko.
+1|Во сколько завтрак?|O której jest śniadanie?
+1|Где можно оставить чемодан?|Gdzie mogę zostawić walizkę?
+2|Есть ли в номере Wi-Fi?|Czy w pokoju jest Wi-Fi?
+2|Можно поздний выезд?|Czy można wymeldować się później?
+2|В номере не работает кондиционер.|W pokoju nie działa klimatyzacja.
+2|Посоветуйте, что стоит посмотреть в городе.|Co warto zobaczyć w mieście?
+3|Мы хотели бы номер с видом на море, если это возможно.|Chcielibyśmy pokój z widokiem na morze, jeśli to możliwe.
+3|Сколько стоит дополнительная кровать для ребёнка?|Ile kosztuje dostawka dla dziecka?
+3|Я потеряла ключ-карту от номера.|Zgubiłam kartę do pokoju.
+3|Можно заказать такси к отелю на пять утра?|Czy można zamówić taksówkę pod hotel na piątą rano?
+3|В отзывах писали, что здесь шумно по ночам.|W opiniach pisali, że tu jest głośno w nocy.
+4|Мы путешествуем налегке, только с ручной кладью.|Podróżujemy na lekko, tylko z bagażem podręcznym.
+4|Мне больше нравится снимать квартиру, чем жить в отеле.|Wolę wynająć mieszkanie niż mieszkać w hotelu.
+4|Отель оказался совсем не таким, как на фотографиях.|Hotel okazał się zupełnie inny niż na zdjęciach.
+5|В путешествиях меня больше всего привлекают места, куда не доезжают туристы.|W podróżach najbardziej przyciągają mnie miejsca, do których nie docierają turyści.`);
+
+FT("✈️","Аэропорт и самолёт","Lotnisko i samolot",`
+1|Где регистрация на рейс в Киев?|Gdzie jest odprawa na lot do Kijowa?
+1|Вот мой паспорт и посадочный талон.|Oto mój paszport i karta pokładowa.
+2|Мой рейс задерживается на два часа.|Mój lot jest opóźniony o dwie godziny.
+2|Можно место у окна?|Czy mogę prosić o miejsce przy oknie?
+2|Сколько килограммов можно провезти в багаже?|Ile kilogramów można zabrać w bagażu?
+3|Мой чемодан не прилетел, где можно подать заявление?|Moja walizka nie przyleciała, gdzie mogę zgłosić zaginięcie?
+3|Жидкости в ручной клади — не больше ста миллилитров.|Płyny w bagażu podręcznym — nie więcej niż sto mililitrów.
+3|С какого выхода посадка на рейс в Лондон?|Z którego wyjścia jest boarding na lot do Londynu?
+3|Пассажиров просят пройти на посадку.|Pasażerowie proszeni są o udanie się do wyjścia.
+3|Я опаздываю на пересадку, можно пройти без очереди?|Spóźnię się na przesiadkę, czy mogę przejść bez kolejki?
+4|Рейс отменили, и авиакомпания должна нам компенсацию.|Lot został odwołany i linia lotnicza jest nam winna odszkodowanie.
+4|На досмотре пришлось вынуть ноутбук и снять обувь.|Na kontroli trzeba było wyjąć laptopa i zdjąć buty.
+4|У меня страх полётов, поэтому я всегда беру что-то успокаивающее.|Boję się latać, więc zawsze biorę coś na uspokojenie.
+5|Из-за тумана самолёт посадили в другом городе, и до дома мы добирались автобусом.|Z powodu mgły samolot wylądował w innym mieście i do domu dotarliśmy autobusem.`);
+
+FT("🔧","Ремонт и мастера","Remont i fachowcy",`
+2|У нас течёт кран на кухне.|Na kuchni cieknie nam kran.
+2|Можете прийти посмотреть, что с розеткой?|Może pan przyjść zobaczyć, co jest z gniazdkiem?
+2|Сколько будет стоить ремонт?|Ile będzie kosztowała naprawa?
+3|Засорился унитаз, и вода не уходит.|Zatkała się toaleta i woda nie spływa.
+3|Когда вам удобно прийти: утром или после обеда?|Kiedy panu pasuje przyjść: rano czy po południu?
+3|Выбило пробки, и в половине квартиры нет света.|Wywaliło korki i w połowie mieszkania nie ma światła.
+3|Мы хотим поменять плитку в ванной.|Chcemy wymienić płytki w łazience.
+3|Мастер обещал прийти в девять, а его до сих пор нет.|Fachowiec obiecał przyjść o dziewiątej, a do tej pory go nie ma.
+4|Ремонт затянулся на два месяца дольше, чем планировали.|Remont przeciągnął się o dwa miesiące dłużej, niż planowaliśmy.
+4|Мне нужна смета, прежде чем вы начнёте работу.|Potrzebuję kosztorysu, zanim pan zacznie pracę.
+4|Стены нужно сначала зашпаклевать, а потом покрасить.|Ściany trzeba najpierw zaszpachlować, a potem pomalować.
+4|Сосед сверлит каждый день с восьми утра.|Sąsiad wierci codziennie od ósmej rano.
+5|Ремонт — это проверка отношений похлеще любого отпуска.|Remont to sprawdzian dla związku gorszy niż jakikolwiek urlop.`);
+
+FT("🏘️","Соседи и дом","Sąsiedzi i blok",`
+1|Добрый день, я ваша новая соседка.|Dzień dobry, jestem pani nową sąsiadką.
+2|Не могли бы вы забрать мою посылку, если меня не будет?|Czy mógłby pan odebrać moją paczkę, jeśli mnie nie będzie?
+2|Лифт опять не работает.|Winda znowu nie działa.
+2|Ваша собака лает всю ночь.|Pani pies szczeka całą noc.
+3|В субботу у нас небольшая вечеринка, извините заранее за шум.|W sobotę robimy małą imprezę, z góry przepraszam za hałas.
+3|Нас заливает сверху, нужно срочно перекрыть воду.|Zalewa nas z góry, trzeba pilnie zakręcić wodę.
+3|Кто-то постоянно ставит машину на моё место.|Ktoś ciągle parkuje na moim miejscu.
+3|В подъезде перегорела лампочка.|Na klatce schodowej przepaliła się żarówka.
+3|Соседи сверху очень приятные, всегда здороваются.|Sąsiedzi z góry są bardzo sympatyczni, zawsze mówią dzień dobry.
+4|Нужно сообщить в управляющую компанию о протечке.|Trzeba zgłosić przeciek do administracji.
+4|Собрание жильцов будет в четверг в семь вечера.|Zebranie mieszkańców odbędzie się w czwartek o dziewiętnastej.
+4|Прошу соблюдать тишину после двадцати двух часов.|Proszę o zachowanie ciszy po dwudziestej drugiej.
+4|Можно попросить вас присмотреть за кошкой, пока нас не будет?|Czy mogę pana prosić, żeby pan zajrzał do kota, kiedy nas nie będzie?
+5|С соседями у нас нейтралитет: здороваемся, но в душу не лезем.|Z sąsiadami mamy neutralne stosunki: mówimy sobie dzień dobry, ale nie wchodzimy sobie w drogę.`);
+
+FT("🧒","Дети: игры, школа, уроки","Dzieci i szkoła",`
+1|Ты сделал домашнее задание?|Odrobiłeś pracę domową?
+1|Пора спать, уже девять часов.|Czas spać, już jest dziewiąta.
+1|Помой руки перед едой.|Umyj ręce przed jedzeniem.
+2|Не забудь взять завтрак и физкультурную форму.|Nie zapomnij wziąć drugiego śniadania i stroju na WF.
+2|Какую оценку ты получил по математике?|Jaką ocenę dostałeś z matematyki?
+2|Убери игрушки, пожалуйста.|Posprzątaj, proszę, zabawki.
+2|Хватит сидеть в телефоне!|Wystarczy już siedzenia w telefonie!
+3|Учительница пишет, что он часто отвлекается на уроках.|Pani nauczycielka pisze, że on często rozprasza się na lekcjach.
+3|Завтра в школе экскурсия, нужно подписать согласие.|Jutro w szkole jest wycieczka, trzeba podpisać zgodę.
+3|Сын подрался на перемене, меня вызывают в школу.|Syn pobił się na przerwie, wzywają mnie do szkoły.
+3|Дочка хочет записаться на плавание.|Córka chce zapisać się na pływanie.
+4|Нам нужен репетитор по польскому перед экзаменом восьмиклассника.|Potrzebujemy korepetytora z polskiego przed egzaminem ósmoklasisty.
+4|Я стараюсь не делать уроки за ребёнка, а только объяснять.|Staram się nie odrabiać lekcji za dziecko, tylko tłumaczyć.
+4|В этом возрасте они уже не хотят, чтобы родители их провожали.|W tym wieku już nie chcą, żeby rodzice ich odprowadzali.
+5|Мне важно, чтобы дети росли самостоятельными, даже если это значит позволить им ошибаться.|Zależy mi, żeby dzieci wyrosły na samodzielnych, nawet jeśli to oznacza pozwalanie im na błędy.`);
+
+FT("🦷","Стоматолог","U dentysty",`
+2|У меня болит зуб внизу слева.|Boli mnie ząb na dole po lewej stronie.
+2|Я хотела бы записаться на чистку зубов.|Chciałabym zapisać się na czyszczenie zębów.
+2|Будет больно?|Czy będzie bolało?
+3|Зуб реагирует на холодное и горячее.|Ząb reaguje na zimne i ciepłe.
+3|У меня выпала пломба.|Wypadła mi plomba.
+3|Можно сделать с обезболиванием?|Czy można to zrobić ze znieczuleniem?
+3|Сколько стоит лечение каналов?|Ile kosztuje leczenie kanałowe?
+4|После удаления два часа нельзя ничего есть.|Po ekstrakcji przez dwie godziny nie wolno nic jeść.
+4|Это лечение покрывает страховка или только платно?|Czy to leczenie jest refundowane przez NFZ, czy tylko prywatnie?
+4|Мне нужно сделать снимок, прежде чем решать, что дальше.|Muszę zrobić zdjęcie, zanim zdecyduję, co dalej.
+5|Я с детства панически боюсь стоматологов, поэтому тянула до последнего.|Od dziecka panicznie boję się dentystów, więc zwlekałam do ostatniej chwili.`);
+
+FT("😊","Эмоции и чувства","Emocje i uczucia",`
+1|Я очень рада тебя видеть!|Bardzo się cieszę, że cię widzę!
+1|Мне грустно.|Jest mi smutno.
+1|Я устала.|Jestem zmęczona.
+2|Не волнуйся, всё будет хорошо.|Nie martw się, wszystko będzie dobrze.
+2|Я боюсь, что не справлюсь.|Boję się, że sobie nie poradzę.
+2|Меня это очень злит.|To mnie bardzo denerwuje.
+2|Я так скучаю по маме.|Tak bardzo tęsknię za mamą.
+3|Я в полном восторге от этой новости!|Jestem zachwycona tą wiadomością!
+3|Мне стыдно, что я тогда так сказала.|Wstydzę się, że wtedy tak powiedziałam.
+3|Он обиделся на меня и не отвечает.|Obraził się na mnie i nie odpisuje.
+3|Я немного нервничаю перед собеседованием.|Trochę się denerwuję przed rozmową o pracę.
+3|Ты меня очень удивил!|Bardzo mnie zaskoczyłeś!
+4|У меня камень с души упал, когда я узнала результаты.|Kamień spadł mi z serca, kiedy poznałam wyniki.
+4|Я сама не своя последние дни, всё валится из рук.|Ostatnio nie jestem sobą, wszystko leci mi z rąk.
+4|Меня просто трясёт от злости.|Aż się trzęsę ze złości.
+4|Мне неловко просить, но не мог бы ты помочь?|Głupio mi prosić, ale czy mógłbyś pomóc?
+5|Я долго не могла прийти в себя после этого разговора.|Długo nie mogłam dojść do siebie po tej rozmowie.
+5|Его равнодушие ранило меня сильнее, чем открытая ссора.|Jego obojętność zraniła mnie bardziej niż otwarta kłótnia.`);
+
+FT("🙏","Просьбы и вежливость","Prośby i uprzejmość",`
+1|Можно вас попросить?|Czy mogę pana o coś prosić?
+1|Помогите, пожалуйста.|Proszę mi pomóc.
+1|Спасибо большое!|Dziękuję bardzo!
+2|Не могли бы вы говорить чуть медленнее?|Czy mógłby pan mówić trochę wolniej?
+2|Можно я пройду?|Czy mogę przejść?
+2|Не за что.|Nie ma za co.
+2|Подержите, пожалуйста, дверь.|Proszę przytrzymać drzwi.
+3|Не подскажете, как пройти к вокзалу?|Czy może mi pan powiedzieć, jak dojść na dworzec?
+3|Простите за беспокойство, у вас не найдётся ручки?|Przepraszam, że przeszkadzam, czy ma pan może długopis?
+3|Буду очень благодарна, если вы мне перезвоните.|Będę bardzo wdzięczna, jeśli pan do mnie oddzwoni.
+3|Не хочу навязываться, но может, вам помочь?|Nie chcę się narzucać, ale może panu pomóc?
+4|Не сочтите за наглость, но можно попросить вас об одолжении?|Proszę nie odebrać tego jako bezczelności, ale czy mogę prosić o przysługę?
+4|Если вам не трудно, передайте ему, что я звонила.|Jeśli to nie kłopot, proszę mu przekazać, że dzwoniłam.
+4|Я была бы признательна за любую подсказку.|Byłabym wdzięczna za każdą wskazówkę.
+5|Позволю себе напомнить о моей просьбе от прошлой недели.|Pozwolę sobie przypomnieć o mojej prośbie z zeszłego tygodnia.`);
+
+FT("🤝","Извинения и благодарность","Przeprosiny i podziękowania",`
+1|Извините, я не хотела.|Przepraszam, nie chciałam.
+1|Ничего страшного.|Nic nie szkodzi.
+2|Простите за опоздание.|Przepraszam za spóźnienie.
+2|Спасибо за помощь, вы меня очень выручили.|Dziękuję za pomoc, bardzo mi pan pomógł.
+2|Извини, что не позвонила вчера.|Przepraszam, że wczoraj nie zadzwoniłam.
+3|Мне очень жаль, что так получилось.|Bardzo mi przykro, że tak wyszło.
+3|Не знаю, как тебя благодарить.|Nie wiem, jak ci dziękować.
+3|Прошу прощения, я перепутала дату.|Przepraszam, pomyliłam datę.
+3|Это моя вина, я всё исправлю.|To moja wina, wszystko naprawię.
+4|Я хотела извиниться за свои слова, я была неправа.|Chciałam przeprosić za swoje słowa, nie miałam racji.
+4|Спасибо, что нашли для меня время.|Dziękuję, że znalazł pan dla mnie czas.
+4|Давай забудем об этом и начнём сначала.|Zapomnijmy o tym i zacznijmy od nowa.
+5|Я в неоплатном долгу перед вами за всё, что вы для нас сделали.|Mam wobec pana dług wdzięczności za wszystko, co pan dla nas zrobił.`);
+
+FT("💬","Мнение, согласие и спор","Opinie i dyskusja",`
+1|Я согласна.|Zgadzam się.
+1|Я так не думаю.|Nie sądzę.
+2|По-моему, это хорошая идея.|Moim zdaniem to dobry pomysł.
+2|А ты что об этом думаешь?|A ty co o tym myślisz?
+2|Ты прав, я не подумала об этом.|Masz rację, nie pomyślałam o tym.
+3|Я понимаю твою точку зрения, но не совсем согласна.|Rozumiem twój punkt widzenia, ale nie do końca się zgadzam.
+3|С одной стороны это дорого, с другой — качество отличное.|Z jednej strony to drogie, z drugiej — jakość jest świetna.
+3|Давай не будем ссориться из-за ерунды.|Nie kłóćmy się o głupoty.
+3|Это зависит от ситуации.|To zależy od sytuacji.
+4|Честно говоря, у меня другое мнение на этот счёт.|Szczerze mówiąc, mam na ten temat inne zdanie.
+4|Ты преувеличиваешь, всё не так страшно.|Przesadzasz, nie jest tak źle.
+4|В чём-то ты прав, но есть одно «но».|W czymś masz rację, ale jest jedno „ale”.
+4|Давай вернёмся к этому разговору, когда успокоимся.|Wróćmy do tej rozmowy, kiedy się uspokoimy.
+5|Не берусь судить, но мне кажется, решение было принято слишком поспешно.|Nie mnie oceniać, ale wydaje mi się, że decyzja została podjęta zbyt pochopnie.
+5|Можно спорить о деталях, но в главном мы сходимся.|Można się spierać o szczegóły, ale w najważniejszym się zgadzamy.`);
+
+FT("🎉","Поздравления и праздники","Życzenia i święta",`
+1|С днём рождения!|Wszystkiego najlepszego z okazji urodzin!
+1|Весёлых праздников!|Wesołych świąt!
+1|С Новым годом!|Szczęśliwego Nowego Roku!
+2|Желаю тебе здоровья и счастья.|Życzę ci zdrowia i szczęścia.
+2|Поздравляю с новой работой!|Gratuluję nowej pracy!
+2|Что вы делаете на Пасху?|Co robicie na Wielkanoc?
+3|В Сочельник у нас двенадцать блюд и облатка.|W Wigilię mamy dwanaście potraw i opłatek.
+3|Мы приглашаем вас на нашу свадьбу в июне.|Zapraszamy was na nasz ślub w czerwcu.
+3|Сто лет, сто лет, пусть живёт, живёт нам!|Sto lat, sto lat, niech żyje, żyje nam!
+3|Я не знаю, что подарить мужу на юбилей.|Nie wiem, co dać mężowi na jubileusz.
+4|От всего сердца желаю, чтобы все твои мечты сбылись.|Z całego serca życzę, żeby spełniły się wszystkie twoje marzenia.
+4|В Польше именины отмечают почти так же, как день рождения.|W Polsce imieniny obchodzi się prawie tak samo jak urodziny.
+4|Примите мои искренние соболезнования.|Proszę przyjąć moje szczere kondolencje.
+5|Пусть этот год будет щедрым на хорошие новости и скупым на огорчения.|Niech ten rok będzie hojny w dobre wiadomości i skąpy w zmartwienia.`);
+
+FT("📱","Телефон и интернет","Telefon i internet",`
+1|У меня не работает интернет.|Nie działa mi internet.
+2|Какой пароль от Wi-Fi?|Jakie jest hasło do Wi-Fi?
+2|У меня закончились деньги на телефоне.|Skończyły mi się pieniądze na telefonie.
+2|Я хочу сменить тарифный план.|Chcę zmienić plan taryfowy.
+3|Я перезагрузила роутер, но ничего не изменилось.|Zrestartowałam router, ale nic się nie zmieniło.
+3|Можно перенести номер к другому оператору?|Czy można przenieść numer do innego operatora?
+3|Телефон упал и разбился экран.|Telefon spadł i pękł ekran.
+3|Мне пришло подозрительное сообщение со ссылкой.|Dostałam podejrzanego SMS-a z linkiem.
+3|Отправь мне это в ватсап.|Wyślij mi to na WhatsAppie.
+4|До конца договора осталось полгода, могу ли я его расторгнуть?|Do końca umowy zostało pół roku, czy mogę ją wypowiedzieć?
+4|Скорость интернета намного ниже, чем указано в договоре.|Prędkość internetu jest dużo niższa, niż jest w umowie.
+4|Я забыла пароль от банковского приложения.|Zapomniałam hasła do aplikacji bankowej.
+5|Я стараюсь не сидеть в телефоне перед сном, но редко получается.|Staram się nie siedzieć w telefonie przed snem, ale rzadko mi się to udaje.`);
+
+FT("🏃","Спорт и фитнес","Sport i siłownia",`
+1|Я хожу в спортзал два раза в неделю.|Chodzę na siłownię dwa razy w tygodniu.
+1|Ты любишь бегать?|Lubisz biegać?
+2|Сколько стоит абонемент на месяц?|Ile kosztuje karnet na miesiąc?
+2|По утрам я делаю зарядку.|Rano robię ćwiczenia.
+2|Мы смотрим футбол каждое воскресенье.|Oglądamy mecz w każdą niedzielę.
+3|После тренировки у меня всё болит.|Po treningu wszystko mnie boli.
+3|Я записалась на йогу, чтобы спина меньше болела.|Zapisałam się na jogę, żeby mniej bolał mnie kręgosłup.
+3|Я хочу похудеть на пять килограммов к лету.|Chcę schudnąć pięć kilogramów do lata.
+4|Главное — регулярность, а не рекорды.|Najważniejsza jest regularność, a nie rekordy.
+4|Я пробежала свой первый полумарафон!|Przebiegłam swój pierwszy półmaraton!
+4|Тренер составил мне индивидуальный план.|Trener ułożył mi indywidualny plan.
+5|Спорт для меня — единственный способ разгрузить голову после работы.|Sport to dla mnie jedyny sposób, żeby odpocząć psychicznie po pracy.`);
+
+FT("💇","Красота: парикмахер, маникюр","Fryzjer i kosmetyczka",`
+2|Я хотела бы записаться на стрижку.|Chciałabym umówić się na strzyżenie.
+2|Только кончики, пожалуйста.|Tylko końcówki, proszę.
+2|Можно покрасить корни?|Czy można pofarbować odrosty?
+3|Сделайте, пожалуйста, покороче сзади, а спереди оставьте длину.|Proszę skrócić z tyłu, a z przodu zostawić długość.
+3|Я хочу что-то новое, но без радикальных перемен.|Chcę czegoś nowego, ale bez radykalnych zmian.
+3|Сколько держится гибридный маникюр?|Jak długo trzyma się manicure hybrydowy?
+3|У меня очень сухая кожа, что вы посоветуете?|Mam bardzo suchą skórę, co pani poleca?
+4|В прошлый раз цвет получился слишком тёмным.|Ostatnim razem kolor wyszedł za ciemny.
+4|Я бы хотела записаться к той же мастерице, что и в прошлый раз.|Chciałabym się umówić do tej samej pani co ostatnio.
+5|Стрижка, конечно, смелая, но она удивительно мне идёт.|Fryzura jest co prawda odważna, ale zaskakująco dobrze mi w niej.`);
+
+FT("🐶","Животные и ветеринар","Zwierzęta i weterynarz",`
+1|У нас есть кот и собака.|Mamy kota i psa.
+2|Можно погладить вашу собаку?|Czy mogę pogłaskać pani psa?
+2|Мой кот ничего не ест со вчерашнего дня.|Mój kot nic nie je od wczoraj.
+3|Собаке нужно сделать прививку от бешенства.|Psa trzeba zaszczepić przeciwko wściekliźnie.
+3|Сколько раз в день его кормить?|Ile razy dziennie go karmić?
+3|Кто погуляет с собакой, пока мы в отпуске?|Kto wyprowadzi psa, kiedy będziemy na urlopie?
+3|Кошка поцарапала ребёнка, но не сильно.|Kotka podrapała dziecko, ale niegroźnie.
+4|Мы взяли собаку из приюта, и она до сих пор всего боится.|Wzięliśmy psa ze schroniska i do dziś wszystkiego się boi.
+4|Ветеринар сказал, что коту нужна строгая диета.|Weterynarz powiedział, że kot musi być na ścisłej diecie.
+5|Без нашего пса я уже не представляю себе ни прогулок, ни выходных.|Bez naszego psa nie wyobrażam sobie już ani spacerów, ani weekendów.`);
+
+FT("🚨","Экстренные ситуации и полиция","Nagłe wypadki i policja",`
+1|Помогите!|Pomocy!
+1|Вызовите скорую!|Proszę wezwać karetkę!
+2|Номер экстренной помощи — сто двенадцать.|Numer alarmowy to sto dwanaście.
+2|У меня украли кошелёк в автобусе.|Ukradziono mi portfel w autobusie.
+2|Человеку плохо, он потерял сознание.|Ten pan źle się czuje, stracił przytomność.
+3|Я хочу заявить о краже.|Chcę zgłosić kradzież.
+3|Произошла авария на перекрёстке, есть пострадавшие.|Na skrzyżowaniu doszło do wypadku, są ranni.
+3|Я потерялась, не знаю, где я нахожусь.|Zgubiłam się, nie wiem, gdzie jestem.
+3|В подъезде пахнет газом.|Na klatce schodowej czuć gaz.
+4|Опишите, пожалуйста, как выглядел этот человек.|Proszę opisać, jak wyglądał ten człowiek.
+4|Мне нужен переводчик, я не всё понимаю.|Potrzebuję tłumacza, nie wszystko rozumiem.
+4|Кто-то пытался взломать дверь, пока нас не было.|Ktoś próbował włamać się do mieszkania, kiedy nas nie było.
+5|Главное в такой ситуации — сохранить спокойствие и чётко назвать адрес.|Najważniejsze w takiej sytuacji to zachować spokój i wyraźnie podać adres.`);
+
+FT("📚","Учёба и курсы","Nauka i kursy",`
+1|Я учу польский.|Uczę się polskiego.
+1|Я не понимаю это слово.|Nie rozumiem tego słowa.
+2|Как это сказать по-польски?|Jak to powiedzieć po polsku?
+2|Можете повторить ещё раз?|Czy może pan powtórzyć jeszcze raz?
+2|Что значит это выражение?|Co znaczy to wyrażenie?
+3|Я записалась на курсы польского уровня B1.|Zapisałam się na kurs polskiego na poziomie B1.
+3|Мне легче понимать, чем говорить.|Łatwiej mi rozumieć, niż mówić.
+3|Падежи — это для меня самое трудное.|Przypadki to dla mnie najtrudniejsza rzecz.
+3|Поправляйте меня, пожалуйста, если я ошибаюсь.|Proszę mnie poprawiać, jeśli robię błędy.
+4|Я готовлюсь к государственному экзамену на сертификат.|Przygotowuję się do egzaminu certyfikatowego.
+4|Чем больше я говорю с поляками, тем увереннее себя чувствую.|Im więcej rozmawiam z Polakami, tym pewniej się czuję.
+4|Я смотрю сериалы с польскими субтитрами.|Oglądam seriale z polskimi napisami.
+5|Язык я учу не для галочки, а чтобы по-настоящему чувствовать себя здесь своей.|Uczę się języka nie dla odhaczenia, ale żeby naprawdę czuć się tu u siebie.`);
+
+FT("📰","Новости и общество","Wiadomości i społeczeństwo",`
+2|Ты слышала последние новости?|Słyszałaś najnowsze wiadomości?
+3|Цены на электричество опять выросли.|Ceny prądu znowu wzrosły.
+3|В воскресенье выборы, ты пойдёшь голосовать?|W niedzielę są wybory, pójdziesz głosować?
+3|Говорят, с января поднимут минимальную зарплату.|Mówią, że od stycznia podniosą płacę minimalną.
+4|По данным статистики безработица в регионе снизилась.|Według danych statystycznych bezrobocie w regionie spadło.
+4|Правительство объявило новые меры поддержки семей.|Rząd ogłosił nowe działania wspierające rodziny.
+4|Я стараюсь читать новости из разных источников.|Staram się czytać wiadomości z różnych źródeł.
+4|Эта тема вызвала в обществе бурную дискуссию.|Ten temat wywołał w społeczeństwie burzliwą dyskusję.
+5|Не всё, что пишут в интернете, заслуживает доверия.|Nie wszystko, co piszą w internecie, zasługuje na zaufanie.
+5|Решение вызвало протесты, но, по мнению экспертов, было неизбежным.|Decyzja wywołała protesty, ale zdaniem ekspertów była nieunikniona.`);
+
+FT("🌳","Природа и экология","Przyroda i ekologia",`
+1|В лесу очень тихо.|W lesie jest bardzo cicho.
+2|Летом мы собираем грибы и ягоды.|Latem zbieramy grzyby i jagody.
+2|Не бросай мусор, здесь есть урна.|Nie rzucaj śmieci, tu jest kosz.
+3|Мы стараемся меньше пользоваться пластиком.|Staramy się mniej używać plastiku.
+3|В горах погода меняется очень быстро.|W górach pogoda zmienia się bardzo szybko.
+3|На Мазурах тысячи озёр.|Na Mazurach są tysiące jezior.
+4|Смог зимой в Кракове — серьёзная проблема.|Smog zimą w Krakowie to poważny problem.
+4|Мы поставили на крыше солнечные панели.|Założyliśmy na dachu panele słoneczne.
+4|В Беловежской пуще до сих пор живут зубры.|W Puszczy Białowieskiej do dziś żyją żubry.
+5|Изменения климата ощущаются уже не через десятки лет, а прямо сейчас.|Zmiany klimatu odczuwa się już nie za kilkadziesiąt lat, ale tu i teraz.`);
+
+FT("🎬","Кино, книги, музыка","Kino, książki, muzyka",`
+1|Какой фильм ты хочешь посмотреть?|Jaki film chcesz obejrzeć?
+1|Я люблю польскую музыку.|Lubię polską muzykę.
+2|Эта книга очень интересная, советую.|Ta książka jest bardzo ciekawa, polecam.
+2|Фильм идёт с субтитрами или с дубляжом?|Film jest z napisami czy z dubbingiem?
+3|Концовка меня совсем не убедила.|Zakończenie w ogóle mnie nie przekonało.
+3|Я прочитала «Ведьмака» за одну неделю.|Przeczytałam „Wiedźmina” w tydzień.
+3|Купить билеты на концерт было почти невозможно.|Kupienie biletów na koncert było prawie niemożliwe.
+4|Сериал затягивает с первой серии.|Serial wciąga od pierwszego odcinka.
+4|Актёры сыграли блестяще, но сюжет слабоватый.|Aktorzy zagrali świetnie, ale fabuła jest słabawa.
+4|Я больше люблю бумажные книги, чем электронные.|Wolę książki papierowe od elektronicznych.
+5|Шимборска умела в нескольких строках сказать больше, чем другие в романе.|Szymborska potrafiła w kilku wersach powiedzieć więcej niż inni w powieści.`);
+
+FT("🍲","Кухня и рецепты","Gotowanie",`
+1|Что сегодня на обед?|Co dziś na obiad?
+1|Суп очень вкусный.|Zupa jest bardzo smaczna.
+2|Порежь лук и морковь мелкими кубиками.|Pokrój cebulę i marchewkę w drobną kostkę.
+2|Нужно посолить и поперчить по вкусу.|Trzeba posolić i popieprzyć do smaku.
+2|Духовку разогреть до ста восьмидесяти градусов.|Piekarnik nagrzać do stu osiemdziesięciu stopni.
+3|Варить на медленном огне около двадцати минут.|Gotować na małym ogniu około dwudziestu minut.
+3|Тесто должно постоять в холодильнике час.|Ciasto musi postać w lodówce godzinę.
+3|У меня подгорели котлеты, пока я говорила по телефону.|Przypaliły mi się kotlety, kiedy rozmawiałam przez telefon.
+3|Дай мне рецепт этого салата, пожалуйста.|Daj mi, proszę, przepis na tę sałatkę.
+4|Бигос лучше всего на третий день, когда хорошо настоится.|Bigos jest najlepszy trzeciego dnia, kiedy dobrze się przegryzie.
+4|Я готовлю на глаз, без весов и мерных стаканов.|Gotuję na oko, bez wagi i miarki.
+5|Настоящие пироги лепят всей семьёй, а не покупают в магазине.|Prawdziwe pierogi lepi się całą rodziną, a nie kupuje w sklepie.`);
+
+FT("❤️","Отношения и свидания","Związki i randki",`
+1|Ты мне нравишься.|Podobasz mi się.
+2|Пойдём куда-нибудь в субботу?|Wyjdziemy gdzieś w sobotę?
+2|Мы вместе уже пять лет.|Jesteśmy razem już pięć lat.
+3|Он сделал мне предложение на море.|Oświadczył mi się nad morzem.
+3|Мы поссорились из-за мелочи.|Pokłóciliśmy się o drobiazg.
+3|Мне нужно немного времени, чтобы всё обдумать.|Potrzebuję trochę czasu, żeby wszystko przemyśleć.
+4|Мы познакомились в приложении, а потом выяснилось, что живём на одной улице.|Poznaliśmy się w aplikacji, a potem okazało się, że mieszkamy na tej samej ulicy.
+4|В отношениях главное — уметь разговаривать.|W związku najważniejsze jest umieć rozmawiać.
+4|Мы расстались, но остались друзьями.|Rozstaliśmy się, ale zostaliśmy przyjaciółmi.
+5|Любовь любовью, но быт может испортить даже самые красивые чувства.|Miłość miłością, ale codzienność potrafi zepsuć nawet najpiękniejsze uczucia.`);
+
+FT("☕","Small talk с коллегами","Rozmowy przy kawie",`
+1|Как дела?|Co słychać?
+1|Всё хорошо, а у тебя?|Wszystko dobrze, a u ciebie?
+2|Как прошли выходные?|Jak minął weekend?
+2|Наконец-то пятница!|Nareszcie piątek!
+2|Ты уже был в новой столовой?|Byłeś już w nowej stołówce?
+3|Куда едешь в отпуск в этом году?|Gdzie jedziesz w tym roku na urlop?
+3|Слышала, у тебя родилась дочка, поздравляю!|Słyszałam, że urodziła ci się córeczka, gratuluję!
+3|Опять пробки, я ехала на работу час.|Znowu korki, jechałam do pracy godzinę.
+4|Как тебе новый начальник? Пока не разобралась.|Jak ci się podoba nowy szef? Jeszcze go nie rozgryzłam.
+4|Сегодня понедельник, а ощущение, будто уже среда.|Dziś poniedziałek, a mam wrażenie, jakby była już środa.
+5|Без утреннего кофе со мной лучше вообще не разговаривать.|Bez porannej kawy lepiej w ogóle ze mną nie rozmawiać.`);
+
+FT("😤","Жалобы и проблемы с сервисом","Reklamacje i skargi",`
+2|Я хочу поговорить с менеджером.|Chcę porozmawiać z kierownikiem.
+2|Заказ пришёл повреждённым.|Zamówienie przyszło uszkodzone.
+3|Я жду курьера уже третий день.|Czekam na kuriera już trzeci dzień.
+3|Мне выставили счёт за услугу, которую я не заказывала.|Wystawiono mi rachunek za usługę, której nie zamawiałam.
+3|Я звонила на горячую линию, но никто не отвечает.|Dzwoniłam na infolinię, ale nikt nie odbiera.
+4|Это уже третья жалоба, а проблему так и не решили.|To już trzecia reklamacja, a problemu dalej nie rozwiązano.
+4|Прошу вернуть деньги на мою карту.|Proszę o zwrot pieniędzy na moją kartę.
+4|Если вопрос не решится, я обращусь в защиту прав потребителей.|Jeśli sprawa nie zostanie załatwiona, zwrócę się do rzecznika praw konsumenta.
+5|Меня не столько расстроила ошибка, сколько то, как ко мне отнеслись.|Nie tyle zdenerwował mnie sam błąd, ile to, jak mnie potraktowano.`);
+
+FT("📜","Договоры, право, документы","Umowy i prawo",`
+3|Где нужно подписать?|Gdzie trzeba podpisać?
+3|Я хочу внимательно прочитать договор перед подписанием.|Chcę uważnie przeczytać umowę przed podpisaniem.
+3|Какой срок уведомления о расторжении?|Jaki jest okres wypowiedzenia?
+4|Договор заключается на неопределённый срок.|Umowa zostaje zawarta na czas nieokreślony.
+4|В случае просрочки оплаты начисляются пени.|W przypadku opóźnienia w płatności naliczane są odsetki.
+4|Мне нужна нотариально заверенная копия.|Potrzebuję kopii poświadczonej notarialnie.
+4|Работодатель обязан выдать мне справку о работе.|Pracodawca ma obowiązek wydać mi świadectwo pracy.
+5|Согласно пункту пятому стороны могут расторгнуть договор по взаимному согласию.|Zgodnie z punktem piątym strony mogą rozwiązać umowę za porozumieniem stron.
+5|Подписывая документ, я подтверждаю, что ознакомилась с условиями.|Podpisując dokument, potwierdzam, że zapoznałam się z warunkami.
+5|Перед подписанием стоит проконсультироваться с юристом.|Przed podpisaniem warto skonsultować się z prawnikiem.`);
+
+FT("😎","Разговорный польский","Polski potoczny",`
+2|Ну и что?|No i co z tego?
+2|Без проблем!|Nie ma sprawy!
+2|Серьёзно?|Serio?
+3|Мне всё равно.|Wszystko mi jedno.
+3|Ничего себе!|No nieźle!
+3|Да ладно, не может быть!|Daj spokój, niemożliwe!
+3|Держи кулаки за меня завтра.|Trzymaj za mnie jutro kciuki.
+4|Это было проще простого.|To była bułka z masłem.
+4|Не моё дело, не мои проблемы.|Nie mój cyrk, nie moje małpy.
+4|Он опять пускает пыль в глаза.|On znowu mydli oczy.
+4|Я на нуле, до зарплаты ещё неделя.|Jestem spłukana, do wypłaty jeszcze tydzień.
+5|Хватит ходить вокруг да около, говори прямо.|Przestań owijać w bawełnę, mów prosto z mostu.
+5|Он из тех, кто ни рыба ни мясо.|To taki ani ryba, ani mięso.
+5|Не говори гоп, пока не перепрыгнешь.|Nie mów hop, póki nie przeskoczysz.`);
+
+/* ═════════════ ФРАЗЫ НА ВСЕ СЛУЧАИ — движок ═════════════ */
+const FR=[]; FRAZY.forEach((t,ti)=>t.items.forEach(it=>FR.push({...it,ti,id:"fraza:"+FR.length})));
+FR.forEach(f=>SENTS.push({lv:f.lv,ru:f.ru,pl:f.pl,alts:[]}));
+function chunkPl(pl){
+  const w=pl.split(" "); if(w.length<=9) return pl;
+  const segs=pl.split(/(?<=,)\s+|\s+(?=—)/); const out=[];
+  segs.forEach(sg=>{ const ws=sg.split(" "); for(let i=0;i<ws.length;i+=3) out.push(ws.slice(i,i+3).join(" ")); });
+  return out.join(" / ");
+}
+function frazaQ(f,force){
+  const lv=LV_N[S.level]||3, same=FR.filter(x=>x.ti===f.ti&&x!==f);
+  const types=["order","meaning","cloze"]; if(lv>=2) types.push("trans","trans");
+  const t=force||pick(types);
+  if(t==="order") return ["order",f.ru,chunkPl(f.pl)];
+  if(t==="trans") return ["trans",f.ru,f.pl];
+  if(t==="meaning"){ const wr=shuffle((same.length>=2?same:FR).filter(x=>x.ru!==f.ru)).slice(0,2).map(x=>x.ru); return ["meaning",f.pl,[f.ru,...wr].join("|")]; }
+  const words=f.pl.replace(/[.,!?„”—]/g,"").split(" ").filter(x=>x.length>=4);
+  if(!words.length) return ["order",f.ru,chunkPl(f.pl)];
+  const target=words.sort((a,b)=>b.length-a.length)[Math.floor(Math.random()*Math.min(2,words.length))];
+  const pool=[...new Set((same.length?same:FR).flatMap(x=>x.pl.replace(/[.,!?„”—]/g,"").split(" ")).filter(x=>x.length>=4&&x.toLowerCase()!==target.toLowerCase()))];
+  const wr=shuffle(pool).sort((a,b)=>Math.abs(a.length-target.length)-Math.abs(b.length-target.length)).slice(0,3);
+  return ["cloze",f.ru,f.pl,target,[target,...wr].join("|")];
+}
+GEN.fraza=i=>{
+  let f; if(i!=null) f=FR[i]||pick(FR);
+  else { const lv=LV_N[S.level]||3; const pool=FR.filter(x=>x.lv<=lv+1&&x.lv>=Math.max(1,lv-1)); f=pick(pool.length?pool:FR); }
+  return {id:f.id,kind:"uq",tag:FRAZY[f.ti].ic+" "+FRAZY[f.ti].pl,x:{q:frazaQ(f)}};
+};
+DATA.fraza={length:FR.length}; FR.forEach((f,i)=>DATA.fraza[i]=f);
+MODE_NAME.fraza="Rozmówki"; T.ru.hints.fraza="Фраза из жизни"; T.pl.hints.fraza="Zdanie z życia";
+GEN.frazac=()=>{ const lv=LV_N[S.level]||3; const pool=FR.filter(x=>Math.abs(x.lv-lv)<=1); const f=pick(pool.length?pool:FR); const q=frazaQ(f,"meaning"); const v=q[2].split("|");
+  return {id:f.id,kind:"choice",hint:ui("Что значит эта фраза?","Co znaczy to zdanie?"),q:esc(f.pl),speakQ:f.pl,options:shuffle(v),correct:v[0],say:f.pl}; };
+DATA.frazac=Array(80).fill(0);
+
+/* ───── экран «Фразы на все случаи» ───── */
+function renderFrazyList(area){
+  const lv=LV_N[S.level]||3;
+  area.append(el("p","hint",esc(ui(FR.length+" живых фраз в "+FRAZY.length+" темах — от «как дела» до договоров и сленга. Открой тему: там разговорник и практика. Или найди нужную фразу поиском.",FR.length+" zdań w "+FRAZY.length+" tematach. Otwórz temat albo wyszukaj zdanie."))));
+  const q=el("input","tinput"); q.id="frSearch"; q.placeholder=ui("Поиск: «врач», «счёт», «опоздаю»…","Szukaj: „lekarz”, „rachunek”…"); area.append(q);
+  const res=el("div","exlist"); const grid=el("div","modes frgrid"); area.append(res,grid);
+  FRAZY.forEach((t,ti)=>{ const n=t.items.filter(x=>x.lv<=lv+1).length, st=(S.fstars||{})[ti]||0;
+    const b=el("button","mode glass",'<span class="ic">'+t.ic+'</span><span class="pl">'+esc(t.t)+'</span><span class="ru">'+esc(t.pl)+' · '+t.items.length+'</span>'+(st?'<span class="hot easy">'+stars(st)+'</span>':''));
+    b.onclick=()=>{ haptic("tap"); openFrazaTopic(ti); }; grid.append(b); });
+  q.oninput=()=>{ const s=q.value.trim().toLowerCase(); res.innerHTML=""; grid.hidden=!!s; if(s.length<2){ grid.hidden=false; return; }
+    const hits=FR.filter(f=>f.ru.toLowerCase().includes(s)||f.pl.toLowerCase().includes(s)).slice(0,40);
+    if(!hits.length) res.append(el("p","note",esc(ui("Ничего не нашлось","Nic nie znaleziono"))));
+    hits.forEach(f=>{ const b=el("button","exrow",'<span>🔊</span><span><b>'+esc(f.pl)+'</b><br><small class="note">'+esc(f.ru)+' · '+FRAZY[f.ti].ic+'</small></span>'); b.onclick=()=>speak(f.pl,true); res.append(b); }); };
+}
+function openFrazaTopic(ti){
+  const t=FRAZY[ti], area=gArea(), lv=LV_N[S.level]||3; area.innerHTML=""; gMain(null); gInfo(t.ic);
+  const back=el("button","say",esc(ui("← все темы","← wszystkie tematy"))); back.onclick=()=>{ area.innerHTML=""; renderUnitList(); }; area.append(back);
+  area.append(el("p","q big",t.ic+" "+esc(t.t)), el("p","note",esc(t.pl)));
+  const rc=el("div","rulecard"); rc.append(el("p","eyebrow","💬 "+esc(ui("Разговорник: нажми — послушай","Rozmówki: stuknij, żeby posłuchać"))));
+  const exl=el("div","exlist");
+  [...t.items].sort((a,b)=>a.lv-b.lv).forEach(f=>{ const b=el("button","exrow"+(Math.abs(f.lv-lv)<=1?"":" far"),'<span class="lvchip">'+["A1","A2","B1","B2","C1","C2"][f.lv-1]+'</span><span><b>'+esc(f.pl)+'</b><br><small class="note">'+esc(f.ru)+'</small></span>'); b.onclick=()=>speak(f.pl,true); exl.append(b); });
+  rc.append(exl); area.append(rc);
+  const pool=t.items.filter(x=>x.lv<=lv+1); const n=Math.min(8,pool.length||t.items.length);
+  gMain(ui("Практика · ","Ćwiczenia · ")+n,()=>runFrazaTopic(ti));
+}
+function runFrazaTopic(ti){
+  const lv=LV_N[S.level]||3; let pool=FR.filter(f=>f.ti===ti&&f.lv<=lv+1); if(pool.length<4) pool=FR.filter(f=>f.ti===ti);
+  const list=shuffle(pool).slice(0,8); let k=0, ok=0;
+  const step=()=>{ const area=gArea(); area.innerHTML=""; gMain(null); gInfo((k+1)+"/"+list.length);
+    const f=list[k];
+    renderUQ(area,frazaQ(f),(good,selfNext)=>{ record(f.id,good); if(good){ ok++; S.pierogi=(S.pierogi||0)+1; save(); }
+      const go=()=>{ k++; k<list.length?step():done(); };
+      if(selfNext){ go(); return; } gMain(k+1<list.length?L().next:L().finish,go); },{nextLabel:k+1<list.length?L().next:L().finish});
+  };
+  const done=()=>{ const r=ok/list.length, st=r>=.9?3:r>=.7?2:1; S.fstars=S.fstars||{}; if(st>(S.fstars[ti]||0)) S.fstars[ti]=st; S.pierogi=(S.pierogi||0)+st*4; questTick("game"); save(); haptic("success");
+    const area=gArea(); area.innerHTML=""; gMain(null); gInfo("");
+    area.append(el("p","eyebrow center",FRAZY[ti].ic+" "+esc(FRAZY[ti].t)), el("p","score shine center",stars(st)), el("p","q center",ok+" / "+list.length+" · +"+st*4+" 🥟"));
+    area.append(el("p","hint center",esc(ui("Каждый раз фразы и задания разные — заходи снова.","Za każdym razem zdania i zadania są inne."))));
+    const row=el("div","row"); const again=el("button","ghost glass",esc(ui("Ещё раз","Jeszcze raz"))); again.onclick=()=>runFrazaTopic(ti);
+    const list2=el("button","primary glint",esc(ui("К темам","Do tematów"))); list2.onclick=()=>{ gArea().innerHTML=""; renderUnitList(); }; row.append(again,list2); area.append(row); };
+  step();
 }
 
 /* ═════════════ ТЕСТ УРОВНЯ ═════════════ */
